@@ -10,6 +10,8 @@ ignore = ["E501"]
 testpaths = ["tests"]
 pythonpath = ["."]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "module"
+asyncio_default_test_loop_scope = "module"
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]
