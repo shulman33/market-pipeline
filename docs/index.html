@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Portfolio Ledger · A Real-Time Market Data Pipeline + Limit-Order-Book Matching Engine</title>
+  <meta name="description" content="A four-service stack ingesting real-time Finnhub trades, running rolling z-score anomaly detection, and simulating a price-time-priority matching engine. Built as a portfolio piece for the Goldman Sachs SWE Analyst application." />
+  <meta name="author" content="Sam Shulman" />
+  <meta property="og:title" content="The Portfolio Ledger · Sam Shulman" />
+  <meta property="og:description" content="Real-time market data + a Java limit-order-book matching engine. Live on AWS." />
+  <meta property="og:type" content="website" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --ink: #06182C;
+      --ink-2: #142844;
+      --ink-soft: #2A3D58;
+      --paper: #F4EFE7;
+      --paper-2: #ECE5D8;
+      --paper-3: #E1D9C8;
+      --gold: #B5894C;
+      --gold-dim: #8C6939;
+      --gold-soft: #D4B47C;
+      --vermillion: #B22234;
+      --char: #0A0A0A;
+      --taupe: #8A8071;
+      --rule: rgba(6, 24, 44, 0.18);
+      --rule-strong: rgba(6, 24, 44, 0.42);
+      --rule-gold: rgba(181, 137, 76, 0.5);
+      --shadow-card: 0 1px 0 rgba(6, 24, 44, 0.07), 0 22px 38px -28px rgba(6, 24, 44, 0.35);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      background-color: var(--paper);
+      color: var(--ink);
+      font-family: "Fraunces", "Iowan Old Style", Georgia, "Times New Roman", serif;
+      font-optical-sizing: auto;
+      font-variation-settings: "opsz" 14, "SOFT" 30;
+      font-size: 17px;
+      line-height: 1.55;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        radial-gradient(rgba(6, 24, 44, 0.018) 1px, transparent 1px),
+        radial-gradient(rgba(6, 24, 44, 0.012) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(181, 137, 76, 0.03), transparent 22%);
+      background-size: 7px 7px, 13px 13px, 100% 100%;
+      background-position: 0 0, 3px 5px, 0 0;
+      min-height: 100vh;
+    }
+
+    ::selection {
+      background-color: var(--gold);
+      color: var(--paper);
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* --------- LAYOUT PRIMITIVES --------- */
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* --------- MASTHEAD --------- */
+    .masthead {
+      border-bottom: 1px solid var(--ink);
+      padding-top: 22px;
+      padding-bottom: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(6px);
+      background-color: rgba(244, 239, 231, 0.94);
+    }
+
+    .masthead-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: end;
+      gap: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .masthead-side {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+    }
+    .masthead-side.right { text-align: right; }
+
+    .masthead-title {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 144, "wght" 600, "SOFT" 20;
+      font-style: italic;
+      font-size: 38px;
+      line-height: 1;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .masthead-tagline {
+      font-family: "Fraunces", serif;
+      font-style: italic;
+      font-size: 13px;
+      color: var(--ink-soft);
+      text-align: center;
+      padding-top: 10px;
+      letter-spacing: 0.01em;
+    }
+
+    .masthead-nav {
+      display: flex;
+      gap: 22px;
+      justify-content: center;
+      padding-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .masthead-nav a {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--ink);
+      padding: 4px 2px;
+      border-bottom: 1px solid transparent;
+      transition: border-color 200ms ease, color 200ms ease;
+    }
+    .masthead-nav a:hover { border-bottom-color: var(--gold); color: var(--gold-dim); }
+    .masthead-nav a.primary {
+      color: var(--paper);
+      background: var(--ink);
+      padding: 5px 10px;
+      border: 1px solid var(--ink);
+    }
+    .masthead-nav a.primary:hover {
+      background: var(--gold-dim);
+      border-color: var(--gold-dim);
+      color: var(--paper);
+    }
+
+    /* --------- TICKER --------- */
+    .ticker {
+      background: var(--ink);
+      color: var(--paper);
+      border-bottom: 1px solid var(--gold);
+      padding: 8px 0;
+      overflow: hidden;
+      position: relative;
+    }
+    .ticker::before, .ticker::after {
+      content: "";
+      position: absolute; top: 0; bottom: 0; width: 80px;
+      pointer-events: none; z-index: 2;
+    }
+    .ticker::before { left: 0; background: linear-gradient(to right, var(--ink), transparent); }
+    .ticker::after { right: 0; background: linear-gradient(to left, var(--ink), transparent); }
+
+    .ticker-track {
+      display: flex;
+      gap: 48px;
+      white-space: nowrap;
+      animation: tickermove 60s linear infinite;
+      will-change: transform;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      width: max-content;
+    }
+
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .ticker-sym { font-weight: 500; color: var(--gold-soft); }
+    .ticker-px { color: var(--paper); }
+    .ticker-chg.up { color: #62B97E; }
+    .ticker-chg.dn { color: #E66A6A; }
+    .ticker-divider { color: var(--ink-soft); }
+
+    @keyframes tickermove {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    /* --------- HERO --------- */
+    .hero {
+      padding: 80px 0 64px;
+      border-bottom: 1px solid var(--ink);
+      position: relative;
+    }
+
+    .hero-kicker {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      padding-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .hero-kicker::before, .hero-kicker::after {
+      content: ""; height: 1px; background: var(--gold-dim); flex: 1; max-width: 80px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+      gap: 56px;
+      align-items: start;
+    }
+
+    .hero h1 {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 144, "wght" 600, "SOFT" 40;
+      font-size: clamp(46px, 9.2vw, 124px);
+      line-height: 0.92;
+      letter-spacing: -0.025em;
+      color: var(--ink);
+      margin-bottom: 28px;
+    }
+    .hero h1 em {
+      font-style: italic;
+      font-variation-settings: "opsz" 144, "wght" 500, "SOFT" 80;
+      color: var(--gold-dim);
+    }
+
+    .hero-dek {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 14, "wght" 400;
+      font-size: clamp(17px, 1.5vw, 21px);
+      line-height: 1.55;
+      color: var(--ink-soft);
+      max-width: 600px;
+      margin-bottom: 36px;
+    }
+
+    .hero-dek strong {
+      font-variation-settings: "opsz" 14, "wght" 600;
+      color: var(--ink);
+    }
+
+    .hero-ctas {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      border: 1px solid var(--ink);
+      transition: background 200ms ease, color 200ms ease, transform 200ms ease, border-color 200ms ease;
+    }
+    .btn-primary {
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .btn-primary:hover {
+      background: var(--gold-dim);
+      border-color: var(--gold-dim);
+      transform: translateY(-2px);
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--ink);
+    }
+    .btn-secondary:hover {
+      background: var(--ink);
+      color: var(--paper);
+      transform: translateY(-2px);
+    }
+    .btn-arrow {
+      display: inline-block;
+      transition: transform 220ms ease;
+    }
+    .btn:hover .btn-arrow { transform: translateX(4px); }
+
+    .hero-note {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--taupe);
+      font-style: normal;
+    }
+
+    /* HERO VITALS CARD */
+    .vitals {
+      background: var(--paper-2);
+      border: 1px solid var(--ink);
+      padding: 28px 28px 24px;
+      position: relative;
+      box-shadow: var(--shadow-card);
+    }
+    .vitals::before {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border: 1px solid var(--rule);
+      pointer-events: none;
+    }
+    .vitals-title {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 18px;
+    }
+    .vitals-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 9px 0;
+      border-bottom: 1px dotted var(--rule);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+    }
+    .vitals-row:last-child { border-bottom: 0; }
+    .vitals-key { color: var(--taupe); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }
+    .vitals-val { color: var(--ink); font-weight: 500; letter-spacing: 0.04em; }
+    .vitals-val .live-dot {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+      background: #62B97E; margin-right: 6px; vertical-align: 1px;
+      box-shadow: 0 0 0 0 rgba(98, 185, 126, 0.7);
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(98, 185, 126, 0.55); }
+      70%  { box-shadow: 0 0 0 10px rgba(98, 185, 126, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(98, 185, 126, 0); }
+    }
+
+    /* --------- COMMON SECTION SCAFFOLD --------- */
+    section { padding: 84px 0; border-bottom: 1px solid var(--ink); }
+
+    .section-num {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+    }
+    .section-kicker {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 0.32em;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      padding-bottom: 18px;
+    }
+    .section-headline {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 100, "wght" 500, "SOFT" 40;
+      font-size: clamp(36px, 5.5vw, 64px);
+      line-height: 1;
+      letter-spacing: -0.018em;
+      color: var(--ink);
+      max-width: 18ch;
+      margin-bottom: 18px;
+    }
+    .section-headline em {
+      font-style: italic;
+      color: var(--gold-dim);
+      font-variation-settings: "opsz" 100, "wght" 400, "SOFT" 90;
+    }
+    .section-lede {
+      font-family: "Fraunces", serif;
+      font-size: 19px;
+      line-height: 1.55;
+      max-width: 60ch;
+      color: var(--ink-soft);
+    }
+    .section-lede strong {
+      color: var(--ink);
+      font-variation-settings: "opsz" 14, "wght" 600;
+    }
+    .section-head {
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      column-gap: 32px;
+      row-gap: 18px;
+      align-items: start;
+      padding-bottom: 44px;
+      border-bottom: 1px dashed var(--rule);
+      margin-bottom: 56px;
+    }
+    .section-head .section-num { padding-top: 4px; }
+    .section-head .section-headline { grid-column: 2; }
+    .section-head .section-kicker { grid-column: 2; padding-bottom: 0; }
+    .section-head .section-lede { grid-column: 2; margin-top: 10px; }
+
+    /* --------- POSITION SUMMARY (TL;DR) --------- */
+    .position-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0;
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+      background: var(--paper-2);
+    }
+    .position-cell {
+      padding: 22px 18px 24px;
+      border-right: 1px dotted var(--rule);
+    }
+    .position-cell:last-child { border-right: 0; }
+    .position-label {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.28em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      padding-bottom: 10px;
+    }
+    .position-value {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 144, "wght" 500, "SOFT" 40;
+      font-size: clamp(28px, 3vw, 44px);
+      line-height: 1;
+      color: var(--ink);
+      letter-spacing: -0.015em;
+    }
+    .position-value small {
+      font-size: 14px;
+      color: var(--taupe);
+      font-variation-settings: "opsz" 14, "wght" 400;
+      letter-spacing: 0;
+      display: block;
+      margin-top: 4px;
+    }
+    .position-note {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      color: var(--ink-soft);
+      letter-spacing: 0.08em;
+      padding-top: 22px;
+      text-align: center;
+      font-style: italic;
+    }
+
+    /* --------- AUDIENCE: RECRUITER --------- */
+    .audience-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border: 1px solid var(--ink);
+      background: var(--paper-2);
+      box-shadow: var(--shadow-card);
+    }
+    .audience-col {
+      padding: 36px 32px;
+      border-right: 1px dashed var(--rule-strong);
+    }
+    .audience-col:last-child { border-right: 0; }
+    .audience-tag {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      padding-bottom: 8px;
+    }
+    .audience-name {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 100, "wght" 500, "SOFT" 50;
+      font-size: 30px;
+      line-height: 1.05;
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+      color: var(--ink);
+    }
+    .audience-name em {
+      font-style: italic;
+      color: var(--gold-dim);
+      font-variation-settings: "opsz" 100, "wght" 400, "SOFT" 90;
+    }
+    .audience-text {
+      font-size: 16px;
+      color: var(--ink-soft);
+      line-height: 1.6;
+      max-width: 46ch;
+    }
+    .audience-text + .audience-text { margin-top: 12px; }
+
+    /* JD GRID */
+    .jd-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px;
+      background: var(--rule);
+      margin-top: 48px;
+      border: 1px solid var(--rule-strong);
+    }
+    .jd-cell {
+      padding: 18px 18px 22px;
+      background: var(--paper);
+      transition: background 200ms ease;
+    }
+    .jd-cell:hover {
+      background: var(--paper-3);
+    }
+    .jd-key {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      padding-bottom: 8px;
+    }
+    .jd-val {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 14, "wght" 500;
+      font-size: 17px;
+      line-height: 1.35;
+      color: var(--ink);
+    }
+    .jd-val span {
+      color: var(--taupe);
+      font-variation-settings: "opsz" 14, "wght" 400;
+      font-style: italic;
+      font-size: 14px;
+      display: block;
+      margin-top: 4px;
+    }
+
+    /* --------- ARCHITECTURE --------- */
+    .architecture {
+      background: linear-gradient(180deg, var(--paper), var(--paper-2));
+    }
+    .arch-svg-wrap {
+      background: var(--paper-2);
+      border: 1px solid var(--ink);
+      padding: 32px;
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+    }
+    .arch-svg-wrap::before {
+      content: "FIG. 1 / TOPOLOGY";
+      position: absolute;
+      top: 14px; left: 16px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      color: var(--gold-dim);
+    }
+    .arch-svg-wrap svg { width: 100%; height: auto; display: block; }
+
+    .arch-legend {
+      display: flex;
+      gap: 28px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px dashed var(--rule);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--ink-soft);
+    }
+    .legend-swatch {
+      display: inline-block; width: 14px; height: 10px; vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    /* --------- ENGINEER / DEEP DIVE --------- */
+    .case {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+      gap: 48px;
+      align-items: start;
+      padding: 56px 0;
+      border-bottom: 1px dashed var(--rule);
+    }
+    .case:last-of-type { border-bottom: 0; }
+
+    .case-meta {
+      position: sticky;
+      top: 100px;
+    }
+    @media (max-width: 1100px) {
+      .case-meta { position: static; }
+    }
+    .case-tag {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      padding-bottom: 10px;
+    }
+    .case-title {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 100, "wght" 500, "SOFT" 40;
+      font-size: clamp(28px, 3.2vw, 40px);
+      line-height: 1.02;
+      letter-spacing: -0.015em;
+      margin-bottom: 16px;
+    }
+    .case-title em {
+      font-style: italic;
+      color: var(--gold-dim);
+      font-variation-settings: "opsz" 100, "wght" 400, "SOFT" 90;
+    }
+    .case-claim {
+      font-family: "Fraunces", serif;
+      font-style: italic;
+      font-size: 18px;
+      line-height: 1.5;
+      color: var(--ink-soft);
+      padding: 16px 0 20px;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 22px;
+    }
+    .case-prose {
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--ink-soft);
+    }
+    .case-prose p + p { margin-top: 12px; }
+    .case-prose strong { color: var(--ink); font-variation-settings: "opsz" 14, "wght" 600; }
+    .case-prose .drop-cap::first-letter {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 144, "wght" 600;
+      font-size: 64px;
+      line-height: 0.85;
+      float: left;
+      padding-right: 8px;
+      padding-top: 6px;
+      color: var(--gold-dim);
+    }
+
+    .complexity-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 22px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+    }
+    .complexity-table th, .complexity-table td {
+      text-align: left;
+      padding: 8px 0;
+      border-bottom: 1px dotted var(--rule);
+    }
+    .complexity-table th {
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      font-size: 9px;
+    }
+    .complexity-table td:last-child { text-align: right; color: var(--ink); }
+
+    /* CODE CARDS */
+    .code-card {
+      background: var(--ink);
+      color: var(--paper);
+      border: 1px solid var(--ink);
+      box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+    }
+    .code-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 16px;
+      background: rgba(244, 239, 231, 0.05);
+      border-bottom: 1px solid rgba(244, 239, 231, 0.15);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--gold-soft);
+      text-transform: uppercase;
+    }
+    .code-head .dots {
+      display: inline-flex; gap: 6px;
+    }
+    .code-head .dots span {
+      width: 9px; height: 9px; border-radius: 50%; background: rgba(244, 239, 231, 0.18);
+    }
+    .code-body {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12.5px;
+      line-height: 1.65;
+      padding: 16px 18px 18px;
+      overflow-x: auto;
+      counter-reset: line;
+      white-space: pre;
+      color: rgba(244, 239, 231, 0.92);
+    }
+    .code-body .line { display: block; }
+    .code-body .line::before {
+      counter-increment: line;
+      content: counter(line, decimal-leading-zero);
+      display: inline-block;
+      width: 28px;
+      color: rgba(244, 239, 231, 0.28);
+      margin-right: 14px;
+      text-align: right;
+      user-select: none;
+    }
+    .tok-kw { color: #D4B47C; }
+    .tok-str { color: #B9DBA3; }
+    .tok-num { color: #E8B96F; }
+    .tok-fn  { color: #9AC8E8; }
+    .tok-cm  { color: rgba(244, 239, 231, 0.4); font-style: italic; }
+    .tok-cls { color: #E8C49A; }
+    .tok-op  { color: #D4B47C; }
+    .tok-self { color: #C8A2D3; font-style: italic; }
+
+    /* --------- QUICKSTART --------- */
+    .quickstart {
+      background: var(--ink);
+      color: var(--paper);
+      border-bottom: none;
+    }
+    .quickstart .section-headline { color: var(--paper); }
+    .quickstart .section-headline em { color: var(--gold-soft); }
+    .quickstart .section-num,
+    .quickstart .section-kicker { color: var(--gold-soft); }
+    .quickstart .section-lede { color: rgba(244, 239, 231, 0.78); }
+    .quickstart .section-head { border-bottom-color: rgba(244, 239, 231, 0.18); }
+
+    .terminal {
+      background: rgba(244, 239, 231, 0.04);
+      border: 1px solid rgba(244, 239, 231, 0.18);
+      padding: 22px 24px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 13px;
+      line-height: 1.85;
+      color: var(--paper);
+      box-shadow: 0 24px 50px -32px rgba(0, 0, 0, 0.6);
+    }
+    .terminal .prompt { color: var(--gold-soft); user-select: none; margin-right: 10px; }
+    .terminal .cmt { color: rgba(244, 239, 231, 0.45); font-style: italic; }
+    .terminal .arg { color: #B9DBA3; }
+    .terminal .url { color: #9AC8E8; text-decoration: underline; text-decoration-color: rgba(154, 200, 232, 0.35); }
+    .terminal .line { display: block; }
+    .terminal .blink::after {
+      content: "▌";
+      color: var(--gold-soft);
+      animation: blink 1.1s steps(1) infinite;
+      margin-left: 4px;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .quickstart-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+      gap: 36px;
+      align-items: start;
+    }
+    .qs-card {
+      background: rgba(244, 239, 231, 0.04);
+      border: 1px solid rgba(244, 239, 231, 0.18);
+      padding: 22px 24px;
+    }
+    .qs-card h4 {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: var(--gold-soft);
+      text-transform: uppercase;
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(244, 239, 231, 0.15);
+    }
+    .qs-list {
+      display: grid;
+      gap: 0;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+    }
+    .qs-list a {
+      display: flex; justify-content: space-between; gap: 12px;
+      color: var(--paper);
+      padding: 10px 0;
+      border-bottom: 1px dotted rgba(244, 239, 231, 0.15);
+      transition: color 200ms ease;
+    }
+    .qs-list a:last-child { border-bottom: 0; }
+    .qs-list a:hover { color: var(--gold-soft); }
+    .qs-list .left { letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; color: rgba(244, 239, 231, 0.6); }
+    .qs-list .right { color: var(--paper); text-align: right; }
+
+    /* --------- FOOTER --------- */
+    footer {
+      background: var(--paper);
+      padding: 56px 0 40px;
+      border-top: 1px solid var(--ink);
+    }
+    .foot-grid {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 32px;
+      align-items: start;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--rule);
+      margin-bottom: 18px;
+    }
+    .foot-lockup {
+      font-family: "Fraunces", serif;
+      font-variation-settings: "opsz" 144, "wght" 500, "SOFT" 30;
+      font-style: italic;
+      font-size: 28px;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    .foot-meta {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      text-align: right;
+      line-height: 1.9;
+    }
+    .foot-meta a:hover { color: var(--gold-dim); }
+
+    .foot-fine {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--taupe);
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    /* --------- REVEAL --------- */
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 700ms cubic-bezier(0.2, 0.7, 0.2, 1), transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .ticker-track { animation: none; }
+      .terminal .blink::after { animation: none; }
+      .vitals-val .live-dot { animation: none; }
+    }
+
+    /* --------- RESPONSIVE --------- */
+    @media (max-width: 920px) {
+      .wrap { padding: 0 22px; }
+      .masthead-row { grid-template-columns: 1fr; text-align: center; align-items: center; }
+      .masthead-side, .masthead-side.right { text-align: center; }
+      .masthead-title { font-size: 30px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 32px; }
+      .position-grid { grid-template-columns: repeat(2, 1fr); }
+      .position-cell { border-bottom: 1px dotted var(--rule); }
+      .audience-tabs { grid-template-columns: 1fr; }
+      .audience-col { border-right: 0; border-bottom: 1px dashed var(--rule-strong); }
+      .audience-col:last-child { border-bottom: 0; }
+      .case { grid-template-columns: 1fr; gap: 24px; }
+      .quickstart-grid { grid-template-columns: 1fr; }
+      .section-head { grid-template-columns: 1fr; }
+      .section-head .section-headline,
+      .section-head .section-lede,
+      .section-head .section-kicker { grid-column: 1; }
+      .foot-grid { grid-template-columns: 1fr; }
+      .foot-meta { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ MASTHEAD ============ -->
+  <header class="masthead">
+    <div class="wrap">
+      <div class="masthead-row">
+        <div class="masthead-side">Vol. I  ·  No. 1</div>
+        <div class="masthead-title">The Portfolio Ledger</div>
+        <div class="masthead-side right">Late Edition  ·  May 2026</div>
+      </div>
+      <div class="masthead-tagline">
+        A single-edition broadsheet on a four-service stack, written for the Goldman Sachs Software Engineer Analyst application.
+      </div>
+      <nav class="masthead-nav">
+        <a href="#position">Position</a>
+        <a href="#recruiter">At a Glance</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#engineer">Deep Dive</a>
+        <a href="#quickstart">Try It</a>
+        <a href="http://3.232.132.2:8501" class="primary" target="_blank" rel="noopener">Live Demo  ›</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ============ TICKER ============ -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track">
+      <!-- Segment 1 -->
+      <span class="ticker-item"><span class="ticker-sym">AAPL</span><span class="ticker-px">187.42</span><span class="ticker-chg up">+0.84%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">MSFT</span><span class="ticker-px">412.18</span><span class="ticker-chg up">+0.31%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">GOOGL</span><span class="ticker-px">167.93</span><span class="ticker-chg dn">-0.22%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">TSLA</span><span class="ticker-px">241.67</span><span class="ticker-chg up">+1.42%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">SPY</span><span class="ticker-px">528.04</span><span class="ticker-chg up">+0.18%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">SYNTH1</span><span class="ticker-px">100.04</span><span class="ticker-chg up">+0.04%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">SYNTH2</span><span class="ticker-px">99.92</span><span class="ticker-chg dn">-0.08%</span><span class="ticker-divider">·</span></span>
+      <!-- Segment 2 (duplicate for seamless loop) -->
+      <span class="ticker-item"><span class="ticker-sym">AAPL</span><span class="ticker-px">187.42</span><span class="ticker-chg up">+0.84%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">MSFT</span><span class="ticker-px">412.18</span><span class="ticker-chg up">+0.31%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">GOOGL</span><span class="ticker-px">167.93</span><span class="ticker-chg dn">-0.22%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">TSLA</span><span class="ticker-px">241.67</span><span class="ticker-chg up">+1.42%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">SPY</span><span class="ticker-px">528.04</span><span class="ticker-chg up">+0.18%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">SYNTH1</span><span class="ticker-px">100.04</span><span class="ticker-chg up">+0.04%</span><span class="ticker-divider">·</span></span>
+      <span class="ticker-item"><span class="ticker-sym">SYNTH2</span><span class="ticker-px">99.92</span><span class="ticker-chg dn">-0.08%</span><span class="ticker-divider">·</span></span>
+    </div>
+  </div>
+
+  <!-- ============ HERO ============ -->
+  <section class="hero" id="top">
+    <div class="wrap">
+      <div class="hero-kicker reveal">PORTFOLIO  ·  PROJECT NO. 1  ·  SHIPPED 2026</div>
+      <div class="hero-grid">
+        <div>
+          <h1 class="reveal">
+            Real-Time<br />
+            Market Data <em>Pipeline.</em><br />
+            Plus an Order Book.
+          </h1>
+          <p class="hero-dek reveal">
+            Four services, two runtimes, one Postgres. A <strong>Python ingestor</strong>
+            holding a persistent WebSocket to Finnhub. A <strong>rolling z-score
+            anomaly detector</strong> in O(1) per update. A <strong>Java limit-order-book
+            matching engine</strong> with price-time priority, O(log&nbsp;n) submit and O(1)
+            cancel. Wired with Docker, deployed on AWS Lightsail, exposed
+            through a single Streamlit dashboard. By Sam Shulman.
+          </p>
+          <div class="hero-ctas reveal">
+            <a class="btn btn-primary" href="http://3.232.132.2:8501" target="_blank" rel="noopener">
+              View the Live Demo
+              <span class="btn-arrow">›</span>
+            </a>
+            <a class="btn btn-secondary" href="https://github.com/shulman33/goldman-portfolio" target="_blank" rel="noopener">
+              GitHub Source
+              <span class="btn-arrow">›</span>
+            </a>
+          </div>
+          <div class="hero-note reveal">
+            Live URL serves a real Streamlit app over plain HTTP from a Lightsail instance in us-east-1.
+          </div>
+        </div>
+
+        <aside class="vitals reveal" aria-label="Project vital statistics">
+          <div class="vitals-title">Vital Statistics</div>
+          <div class="vitals-row"><span class="vitals-key">Services</span> <span class="vitals-val">4 + Postgres</span></div>
+          <div class="vitals-row"><span class="vitals-key">Languages</span> <span class="vitals-val">Python · Java · SQL</span></div>
+          <div class="vitals-row"><span class="vitals-key">JUnit</span> <span class="vitals-val">25 / 25 passing</span></div>
+          <div class="vitals-row"><span class="vitals-key">PyTest</span> <span class="vitals-val">21 / 21 passing</span></div>
+          <div class="vitals-row"><span class="vitals-key">DS&amp;A</span> <span class="vitals-val">Rolling Z + LOB</span></div>
+          <div class="vitals-row"><span class="vitals-key">Build</span> <span class="vitals-val">Docker · Compose</span></div>
+          <div class="vitals-row"><span class="vitals-key">CI</span> <span class="vitals-val">GitHub Actions</span></div>
+          <div class="vitals-row"><span class="vitals-key">Deploy</span> <span class="vitals-val">AWS Lightsail</span></div>
+          <div class="vitals-row"><span class="vitals-key">Status</span> <span class="vitals-val"><span class="live-dot"></span>Live</span></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ POSITION SUMMARY ============ -->
+  <section class="position" id="position">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="section-num">§ 01</div>
+        <div class="section-kicker">The Position Summary</div>
+        <h2 class="section-headline">A one-line read for the <em>thirty-second skim.</em></h2>
+        <p class="section-lede">
+          The project below maps the Goldman Sachs Software Engineer Analyst job description, keyword by keyword, against a stack that actually runs.
+          What follows is the headline data.
+        </p>
+      </div>
+
+      <div class="position-grid reveal">
+        <div class="position-cell">
+          <div class="position-label">Codebase</div>
+          <div class="position-value">2<small>runtimes &amp; build systems</small></div>
+        </div>
+        <div class="position-cell">
+          <div class="position-label">Services</div>
+          <div class="position-value">4<small>plus a Postgres instance</small></div>
+        </div>
+        <div class="position-cell">
+          <div class="position-label">Tests</div>
+          <div class="position-value">46<small>real, no mocks</small></div>
+        </div>
+        <div class="position-cell">
+          <div class="position-label">DS&amp;A pieces</div>
+          <div class="position-value">2<small>rolling-z and LOB</small></div>
+        </div>
+        <div class="position-cell">
+          <div class="position-label">Cloud</div>
+          <div class="position-value">AWS<small>Lightsail, us-east-1</small></div>
+        </div>
+        <div class="position-cell">
+          <div class="position-label">Build window</div>
+          <div class="position-value">72h<small>start to live URL</small></div>
+        </div>
+      </div>
+
+      <div class="position-note">
+        Every figure here links to a specific file in the repo. No abstractions, no hand-waves.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ AT A GLANCE / RECRUITER ============ -->
+  <section class="recruiter" id="recruiter">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="section-num">§ 02</div>
+        <div class="section-kicker">At a glance</div>
+        <h2 class="section-headline">Two readers. <em>One page.</em></h2>
+        <p class="section-lede">
+          This site speaks to two people at once. A non-technical reader checking that the candidate did the work and the work runs. A technical reader looking to confirm the candidate can defend it in an interview. Below: what each sees first.
+        </p>
+      </div>
+
+      <div class="audience-tabs reveal">
+        <div class="audience-col">
+          <div class="audience-tag">For the Recruiter</div>
+          <div class="audience-name">A working <em>portfolio,</em> not a slide deck.</div>
+          <p class="audience-text">
+            Click the <strong>Live Demo</strong> button at the top and a Streamlit dashboard loads with real Finnhub market data during US trading hours, plus an always-on limit-order-book simulation.
+            The same code that ships here is what runs on AWS. No staging gap, no shrink-wrapped marketing copy.
+          </p>
+          <p class="audience-text">
+            The candidate built it in roughly seventy-two hours across three working sessions. The repo lists each session's decisions in a way that an engineering manager can audit.
+          </p>
+        </div>
+        <div class="audience-col">
+          <div class="audience-tag">For the Interviewer</div>
+          <div class="audience-name">Read the <em>order-book</em> code first.</div>
+          <p class="audience-text">
+            The matching engine is the conversation. <strong>TreeMap of PriceLevel</strong> by price (reverse-ordered for bids), each level a doubly-linked FIFO of orders, with a <strong>HashMap order-id index</strong> for O(1) cancel. Match() sweeps the opposite tree, walks the FIFO, books trades, removes empty levels.
+          </p>
+          <p class="audience-text">
+            The Python side does its own DS&amp;A work in <strong>RollingZScore</strong>: a fixed-size deque with running sum and running sum-of-squares, evicting the oldest element before append so variance stays O(1) per tick.
+          </p>
+        </div>
+      </div>
+
+      <div class="jd-grid reveal">
+        <div class="jd-cell">
+          <div class="jd-key">Java</div>
+          <div class="jd-val">Matching engine<span>17 + Maven + Javalin, ~30 source files, 25 JUnit tests</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">Python</div>
+          <div class="jd-val">Three services<span>FastAPI, Streamlit, async ingestor on Python 3.14</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">SQL, RDB</div>
+          <div class="jd-val">Postgres 16<span>Raw psycopg, no ORM, schema is six tables</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">Data structures, algorithms</div>
+          <div class="jd-val">Rolling-z + LOB<span>O(1) anomaly detect, O(log n) submit, O(1) cancel</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">Microservices</div>
+          <div class="jd-val">Four-service mesh<span>HTTP and Postgres are the only protocols</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">Low-latency</div>
+          <div class="jd-val">Sub-second ticks<span>Vendor WebSocket plus prepared-statement caching</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">Docker</div>
+          <div class="jd-val">One image per service<span>docker compose builds and runs the stack locally and on AWS</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">AWS</div>
+          <div class="jd-val">Live on Lightsail<span>Ubuntu 24.04 instance, 2 GB, public endpoint open</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">CI / CD</div>
+          <div class="jd-val">GitHub Actions<span>Three parallel jobs, lint, pytest, mvn test, compose build</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">Automated tests</div>
+          <div class="jd-val">25 + 21 = 46<span>Real Postgres via testcontainers, no mocks</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">Financial markets</div>
+          <div class="jd-val">Anomaly alerts<span>plus a synthetic exchange that fills by price-time priority</span></div>
+        </div>
+        <div class="jd-cell">
+          <div class="jd-key">Distributed systems</div>
+          <div class="jd-val">Auto-reconnect, watchdog<span>Postgres as the bus, no queue, no broker</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ARCHITECTURE ============ -->
+  <section class="architecture" id="architecture">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="section-num">§ 03</div>
+        <div class="section-kicker">Topology</div>
+        <h2 class="section-headline">Four services. <em>One Postgres.</em></h2>
+        <p class="section-lede">
+          The ingestor never talks to the API. The dashboard never talks to the database. HTTP and Postgres are the only seams. Read the diagram and the whole system fits in your head.
+        </p>
+      </div>
+
+      <div class="arch-svg-wrap reveal">
+        <svg viewBox="0 0 1200 620" role="img" aria-label="System architecture diagram">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#06182C" />
+            </marker>
+            <marker id="arrow-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#B5894C" />
+            </marker>
+            <pattern id="dotgrid" width="14" height="14" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="0.8" fill="rgba(6,24,44,0.07)"/>
+            </pattern>
+          </defs>
+
+          <rect width="1200" height="620" fill="url(#dotgrid)" />
+
+          <!-- FINNHUB CLOUD (external) -->
+          <g transform="translate(80,30)">
+            <rect x="0" y="0" width="220" height="84" fill="#F4EFE7" stroke="#B5894C" stroke-width="1.5" stroke-dasharray="6 4" rx="2"/>
+            <text x="20" y="26" font-family="IBM Plex Mono" font-size="9" letter-spacing="2" fill="#8C6939">EXTERNAL · WSS</text>
+            <text x="20" y="55" font-family="Fraunces" font-style="italic" font-size="22" fill="#06182C">Finnhub.io</text>
+            <text x="20" y="74" font-family="IBM Plex Mono" font-size="10" fill="#2A3D58">wss://ws.finnhub.io</text>
+          </g>
+
+          <!-- INGESTOR -->
+          <g transform="translate(80,200)">
+            <rect x="0" y="0" width="260" height="160" fill="#06182C" rx="2"/>
+            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#D4B47C">SERVICE · PYTHON</text>
+            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#F4EFE7">ingestor</text>
+            <line x1="20" y1="78" x2="240" y2="78" stroke="rgba(244,239,231,0.18)" stroke-width="1"/>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ async WebSocket loop</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ RollingZScore detector</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ exp backoff + watchdog</text>
+          </g>
+
+          <!-- POSTGRES -->
+          <g transform="translate(450,200)">
+            <ellipse cx="130" cy="14" rx="130" ry="14" fill="#142844"/>
+            <rect x="0" y="14" width="260" height="132" fill="#06182C"/>
+            <ellipse cx="130" cy="146" rx="130" ry="14" fill="#06182C"/>
+            <ellipse cx="130" cy="14" rx="130" ry="14" fill="none" stroke="#B5894C" stroke-width="1"/>
+            <text x="20" y="40" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#D4B47C">DATA</text>
+            <text x="20" y="74" font-family="Fraunces" font-style="italic" font-size="28" fill="#F4EFE7">postgres 16</text>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">ticks · alerts</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">me_orders · me_trades</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">me_book_snapshots</text>
+          </g>
+
+          <!-- API -->
+          <g transform="translate(820,200)">
+            <rect x="0" y="0" width="260" height="160" fill="#06182C" rx="2"/>
+            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#D4B47C">SERVICE · PYTHON</text>
+            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#F4EFE7">api</text>
+            <line x1="20" y1="78" x2="240" y2="78" stroke="rgba(244,239,231,0.18)" stroke-width="1"/>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">GET /health</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">GET /prices/&#123;symbol&#125;</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">GET /alerts</text>
+          </g>
+
+          <!-- MATCHING ENGINE -->
+          <g transform="translate(80,430)">
+            <rect x="0" y="0" width="320" height="150" fill="#142844" rx="2"/>
+            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#D4B47C">SERVICE · JAVA 17</text>
+            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#F4EFE7">matching-engine</text>
+            <line x1="20" y1="78" x2="300" y2="78" stroke="rgba(244,239,231,0.18)" stroke-width="1"/>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ TreeMap order book per symbol</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ synthetic generator @ 50 ms</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ HTTP via Javalin</text>
+          </g>
+
+          <!-- DASHBOARD -->
+          <g transform="translate(820,430)">
+            <rect x="0" y="0" width="260" height="150" fill="#B5894C" rx="2"/>
+            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#06182C">SERVICE · STREAMLIT</text>
+            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#06182C">dashboard</text>
+            <line x1="20" y1="78" x2="240" y2="78" stroke="rgba(6,24,44,0.25)" stroke-width="1"/>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(6,24,44,0.78)">page 1 · Finnhub view</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(6,24,44,0.78)">page 2 · matching engine</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(6,24,44,0.78)">10 s autorefresh / 2 Hz</text>
+          </g>
+
+          <!-- FLOW LINES -->
+          <path d="M 190 114 L 190 200" stroke="#B5894C" stroke-width="1.6" fill="none" marker-end="url(#arrow-gold)"/>
+          <text x="200" y="160" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#8C6939">TRADES</text>
+          <path d="M 340 280 L 450 280" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="360" y="272" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">INSERT</text>
+          <path d="M 710 280 L 820 280" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="735" y="272" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">SELECT</text>
+          <path d="M 400 460 C 540 460, 540 380, 580 360" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="460" y="448" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">JOURNAL</text>
+          <path d="M 950 360 L 950 430" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="960" y="400" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">HTTP</text>
+          <path d="M 400 540 C 540 540, 540 540, 820 510" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="540" y="528" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">HTTP</text>
+
+          <text x="1180" y="600" text-anchor="end" font-family="IBM Plex Mono" font-size="9" letter-spacing="3" fill="#8C6939">PORTFOLIO · LEDGER</text>
+        </svg>
+
+        <div class="arch-legend">
+          <span><span class="legend-swatch" style="background:#06182C"></span>Python service</span>
+          <span><span class="legend-swatch" style="background:#142844"></span>JVM service</span>
+          <span><span class="legend-swatch" style="background:#B5894C"></span>UI surface</span>
+          <span><span class="legend-swatch" style="background:#F4EFE7; border:1px solid #B5894C"></span>External</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DEEP DIVE / ENGINEER ============ -->
+  <section class="deep-dive" id="engineer">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="section-num">§ 04</div>
+        <div class="section-kicker">For the interviewer</div>
+        <h2 class="section-headline">Three pieces I would <em>defend</em> in a whiteboard.</h2>
+        <p class="section-lede">
+          What follows is the substance, not the surface. Each piece names the data structure, names the cost in big-O, and shows the exact code at the file and line it lives in.
+        </p>
+      </div>
+
+      <!-- CASE I -->
+      <article class="case reveal" id="case-rolling-z">
+        <div class="case-meta">
+          <div class="case-tag">Case I  ·  ingestor / anomaly.py</div>
+          <h3 class="case-title">The rolling <em>z-score,</em><br />in O(1) per tick.</h3>
+          <div class="case-claim">
+            "Naive recompute would be O(window). Running sum and running sum-of-squares over a fixed-size deque is two scalar updates per tick."
+          </div>
+          <div class="case-prose">
+            <p class="drop-cap">Each symbol gets its own detector. Every trade tick produces a log-return; the return goes into a deque of length sixty, the running totals get the new value added and the soon-to-be-evicted value subtracted, and the z-score falls out of mean and standard deviation in two divides and a square root. An alert fires when |z| exceeds 2.5 and the window is warm.</p>
+            <p>No NumPy. No SciPy. The point of writing it this way is precisely to demonstrate the algorithmic technique, not to outsource it.</p>
+          </div>
+          <table class="complexity-table">
+            <thead><tr><th>Operation</th><th>Cost</th></tr></thead>
+            <tbody>
+              <tr><td>update(price)</td><td>O(1)</td></tr>
+              <tr><td>variance recompute</td><td>O(1)</td></tr>
+              <tr><td>window eviction</td><td>O(1)</td></tr>
+              <tr><td>warm-up tick count</td><td>60</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="code-card">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>ingestor / anomaly.py · RollingZScore.update</span>
+            </div>
+<pre class="code-body"><span class="line"><span class="tok-kw">def</span> <span class="tok-fn">update</span>(<span class="tok-self">self</span>, price: <span class="tok-cls">float</span>) -&gt; <span class="tok-cls">AnomalyResult</span>:</span><span class="line">    <span class="tok-kw">if</span> price &lt;= <span class="tok-num">0</span>:</span><span class="line">        <span class="tok-kw">raise</span> <span class="tok-cls">ValueError</span>(<span class="tok-str">"price must be positive"</span>)</span><span class="line"></span><span class="line">    <span class="tok-kw">if</span> <span class="tok-self">self</span>._last_price <span class="tok-kw">is</span> <span class="tok-kw">None</span>:</span><span class="line">        <span class="tok-self">self</span>._last_price = price</span><span class="line">        <span class="tok-kw">return</span> <span class="tok-cls">AnomalyResult</span>(z_score=<span class="tok-kw">None</span>, is_anomaly=<span class="tok-kw">False</span>)</span><span class="line"></span><span class="line">    r = <span class="tok-fn">math.log</span>(price / <span class="tok-self">self</span>._last_price)</span><span class="line">    <span class="tok-self">self</span>._last_price = price</span><span class="line"></span><span class="line">    <span class="tok-cm"># subtract the about-to-evict value BEFORE append.</span></span><span class="line">    <span class="tok-cm"># keeps running totals in sync with the deque, O(1).</span></span><span class="line">    <span class="tok-kw">if</span> <span class="tok-fn">len</span>(<span class="tok-self">self</span>._returns) == <span class="tok-self">self</span>.window_size:</span><span class="line">        evicted = <span class="tok-self">self</span>._returns[<span class="tok-num">0</span>]</span><span class="line">        <span class="tok-self">self</span>._sum     -= evicted</span><span class="line">        <span class="tok-self">self</span>._sum_sq  -= evicted * evicted</span><span class="line"></span><span class="line">    <span class="tok-self">self</span>._returns.<span class="tok-fn">append</span>(r)</span><span class="line">    <span class="tok-self">self</span>._sum    += r</span><span class="line">    <span class="tok-self">self</span>._sum_sq += r * r</span><span class="line"></span><span class="line">    <span class="tok-kw">if</span> <span class="tok-fn">len</span>(<span class="tok-self">self</span>._returns) &lt; <span class="tok-self">self</span>.window_size:</span><span class="line">        <span class="tok-kw">return</span> <span class="tok-cls">AnomalyResult</span>(z_score=<span class="tok-kw">None</span>, is_anomaly=<span class="tok-kw">False</span>)</span><span class="line"></span><span class="line">    n        = <span class="tok-self">self</span>.window_size</span><span class="line">    mean     = <span class="tok-self">self</span>._sum / n</span><span class="line">    variance = <span class="tok-self">self</span>._sum_sq / n - mean * mean</span><span class="line">    <span class="tok-kw">if</span> variance &lt;= <span class="tok-num">0</span>:</span><span class="line">        <span class="tok-kw">return</span> <span class="tok-cls">AnomalyResult</span>(z_score=<span class="tok-kw">None</span>, is_anomaly=<span class="tok-kw">False</span>)</span><span class="line"></span><span class="line">    z = (r - mean) / <span class="tok-fn">math.sqrt</span>(variance)</span><span class="line">    <span class="tok-kw">return</span> <span class="tok-cls">AnomalyResult</span>(z_score=z, is_anomaly=<span class="tok-fn">abs</span>(z) &gt; <span class="tok-self">self</span>.threshold)</span></pre>
+          </div>
+        </div>
+      </article>
+
+      <!-- CASE II -->
+      <article class="case reveal" id="case-order-book">
+        <div class="case-meta">
+          <div class="case-tag">Case II  ·  matching-engine / OrderBook.java</div>
+          <h3 class="case-title">A price-time priority <em>order book.</em></h3>
+          <div class="case-claim">
+            "Two TreeMaps for the price ladders, intrusive linked-list FIFOs at each level, and a HashMap order-id index so cancel is O(1) lookup, O(1) unlink, O(log n) only if the level empties."
+          </div>
+          <div class="case-prose">
+            <p class="drop-cap">The book is two NavigableMaps: bids reverse-ordered so the best bid is firstEntry, asks natural-ordered so the best ask is firstEntry. Each map value is a PriceLevel: a linked list of orders plus a running total quantity. Submit sweeps the opposite side, walks the FIFO at each price level, and posts what does not fill. Cancel goes through the HashMap, unlinks from its level, and removes the level only if empty.</p>
+            <p>Every public method on OrderBook is synchronized. Matching must be linearizable; one coarse lock is the right tool because the engine is single-threaded per book on the producer side.</p>
+          </div>
+          <table class="complexity-table">
+            <thead><tr><th>Operation</th><th>Cost</th></tr></thead>
+            <tbody>
+              <tr><td>submitLimit</td><td>O(k log n)</td></tr>
+              <tr><td>submitMarket</td><td>O(k log n)</td></tr>
+              <tr><td>cancel</td><td>O(1) + O(log n) if level empties</td></tr>
+              <tr><td>topOfBook</td><td>O(1)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="code-card">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>matching-engine / OrderBook.java · match</span>
+            </div>
+<pre class="code-body"><span class="line"><span class="tok-kw">private</span> <span class="tok-cls">long</span> <span class="tok-fn">match</span>(</span><span class="line">        <span class="tok-cls">long</span> takerId,</span><span class="line">        <span class="tok-cls">Side</span> takerSide,</span><span class="line">        <span class="tok-cls">BigDecimal</span> limitPrice,</span><span class="line">        <span class="tok-cls">long</span> quantity,</span><span class="line">        <span class="tok-cls">long</span> ts,</span><span class="line">        <span class="tok-cls">List</span>&lt;<span class="tok-cls">Trade</span>&gt; out) {</span><span class="line">    <span class="tok-cls">NavigableMap</span>&lt;<span class="tok-cls">BigDecimal</span>, <span class="tok-cls">PriceLevel</span>&gt; opposite =</span><span class="line">            (takerSide == <span class="tok-cls">Side</span>.BUY) ? asks : bids;</span><span class="line">    <span class="tok-cls">long</span> remaining = quantity;</span><span class="line"></span><span class="line">    <span class="tok-kw">while</span> (remaining &gt; <span class="tok-num">0</span> &amp;&amp; !opposite.<span class="tok-fn">isEmpty</span>()) {</span><span class="line">        <span class="tok-cls">Map.Entry</span>&lt;<span class="tok-cls">BigDecimal</span>, <span class="tok-cls">PriceLevel</span>&gt; best = opposite.<span class="tok-fn">firstEntry</span>();</span><span class="line">        <span class="tok-cls">BigDecimal</span> restingPrice = best.<span class="tok-fn">getKey</span>();</span><span class="line"></span><span class="line">        <span class="tok-kw">if</span> (limitPrice != <span class="tok-kw">null</span>) {</span><span class="line">            <span class="tok-cls">int</span> cmp = restingPrice.<span class="tok-fn">compareTo</span>(limitPrice);</span><span class="line">            <span class="tok-cls">boolean</span> acceptable =</span><span class="line">                    (takerSide == <span class="tok-cls">Side</span>.BUY) ? cmp &lt;= <span class="tok-num">0</span> : cmp &gt;= <span class="tok-num">0</span>;</span><span class="line">            <span class="tok-kw">if</span> (!acceptable) <span class="tok-kw">break</span>;</span><span class="line">        }</span><span class="line"></span><span class="line">        <span class="tok-cls">PriceLevel</span> level = best.<span class="tok-fn">getValue</span>();</span><span class="line">        <span class="tok-kw">while</span> (remaining &gt; <span class="tok-num">0</span> &amp;&amp; level.head != <span class="tok-kw">null</span>) {</span><span class="line">            <span class="tok-cls">Order</span> maker = level.head;</span><span class="line">            <span class="tok-cls">long</span> fillQty = <span class="tok-cls">Math</span>.<span class="tok-fn">min</span>(remaining, maker.<span class="tok-fn">remainingQuantity</span>());</span><span class="line">            out.<span class="tok-fn">add</span>(<span class="tok-kw">new</span> <span class="tok-cls">Trade</span>(maker.<span class="tok-fn">id</span>(), takerId, symbol, restingPrice, fillQty, ts));</span><span class="line">            remaining -= fillQty;</span><span class="line">            maker.<span class="tok-fn">decreaseQuantity</span>(fillQty);</span><span class="line">            level.<span class="tok-fn">recordFill</span>(fillQty);</span><span class="line">            lastTradePrice = restingPrice;</span><span class="line">            <span class="tok-kw">if</span> (maker.<span class="tok-fn">remainingQuantity</span>() == <span class="tok-num">0</span>) {</span><span class="line">                level.<span class="tok-fn">unlink</span>(maker);</span><span class="line">                ordersById.<span class="tok-fn">remove</span>(maker.<span class="tok-fn">id</span>());</span><span class="line">            }</span><span class="line">        }</span><span class="line">        <span class="tok-kw">if</span> (level.<span class="tok-fn">isEmpty</span>()) opposite.<span class="tok-fn">remove</span>(restingPrice);</span><span class="line">    }</span><span class="line">    <span class="tok-kw">return</span> remaining;</span><span class="line">}</span></pre>
+          </div>
+        </div>
+      </article>
+
+      <!-- CASE III -->
+      <article class="case reveal" id="case-microservices">
+        <div class="case-meta">
+          <div class="case-tag">Case III  ·  service boundaries</div>
+          <h3 class="case-title">The seams. <em>And what is on each side.</em></h3>
+          <div class="case-claim">
+            "The dashboard never touches the database. The ingestor never touches the API. Two protocols carry the whole stack: HTTP and Postgres."
+          </div>
+          <div class="case-prose">
+            <p class="drop-cap">Four services, but the rules between them are short. The ingestor writes <strong>ticks</strong> and <strong>alerts</strong> with raw psycopg in an autocommit connection, wrapping each tick and its derived alert inside one <strong>conn.transaction()</strong> so a crash mid-trade cannot leave a chart spike without its overlay marker.</p>
+            <p>The API reads with an <strong>AsyncConnectionPool</strong> in its lifespan, exposing three endpoints, and the dashboard polls those endpoints. The matching engine writes its own <strong>me_*</strong> tables on a HikariCP pool with <strong>prepareThreshold=1</strong> so the very first execute uses a server-side named plan; subsequent inserts skip parse and plan.</p>
+            <p>No message queue. No ORM. No FastAPI WebSocket. Postgres is the bus.</p>
+          </div>
+          <table class="complexity-table">
+            <thead><tr><th>Boundary</th><th>Protocol</th></tr></thead>
+            <tbody>
+              <tr><td>ingestor &rarr; postgres</td><td>SQL · INSERT</td></tr>
+              <tr><td>matching-engine &rarr; postgres</td><td>SQL · INSERT (HikariCP)</td></tr>
+              <tr><td>api &rarr; postgres</td><td>SQL · SELECT</td></tr>
+              <tr><td>dashboard &rarr; api</td><td>HTTP · poll @ 10 s</td></tr>
+              <tr><td>dashboard &rarr; matching-engine</td><td>HTTP · poll @ 2 Hz</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="code-card">
+            <div class="code-head">
+              <span class="dots"><span></span><span></span><span></span></span>
+              <span>ingestor / main.py · _handle_trade</span>
+            </div>
+<pre class="code-body"><span class="line"><span class="tok-cm"># A tick and its derived alert ship in one transaction so a crash</span></span><span class="line"><span class="tok-cm"># mid-trade cannot leave a chart spike without its alert marker.</span></span><span class="line"><span class="tok-kw">async with</span> conn.<span class="tok-fn">transaction</span>():</span><span class="line">    <span class="tok-kw">await</span> conn.<span class="tok-fn">execute</span>(</span><span class="line">        <span class="tok-str">"INSERT INTO ticks (symbol, ts, price, volume) "</span></span><span class="line">        <span class="tok-str">"VALUES (%s, %s, %s, %s) "</span></span><span class="line">        <span class="tok-str">"ON CONFLICT (symbol, ts) DO NOTHING"</span>,</span><span class="line">        (symbol, ts, price, volume),</span><span class="line">    )</span><span class="line">    <span class="tok-kw">if</span> result.is_anomaly:</span><span class="line">        <span class="tok-kw">await</span> conn.<span class="tok-fn">execute</span>(</span><span class="line">            <span class="tok-str">"INSERT INTO alerts (symbol, ts, price, z_score, message) "</span></span><span class="line">            <span class="tok-str">"VALUES (%s, %s, %s, %s, %s)"</span>,</span><span class="line">            (symbol, ts, price, result.z_score, message),</span><span class="line">        )</span></pre>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ============ QUICKSTART ============ -->
+  <section class="quickstart" id="quickstart">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="section-num">§ 05</div>
+        <div class="section-kicker">Try It Yourself</div>
+        <h2 class="section-headline">Three commands. <em>One stack.</em></h2>
+        <p class="section-lede">
+          A free Finnhub key gets the Python side running. The Java side runs against synthetic flow with no external dependencies. Docker brings the lot up in one command.
+        </p>
+      </div>
+
+      <div class="quickstart-grid reveal">
+        <div class="terminal" role="region" aria-label="Quickstart terminal commands">
+          <span class="line"><span class="cmt"># 1. Clone</span></span>
+          <span class="line"><span class="prompt">$</span>git clone https://github.com/shulman33/goldman-portfolio.git</span>
+          <span class="line"><span class="prompt">$</span>cd goldman-portfolio</span>
+          <span class="line">&nbsp;</span>
+          <span class="line"><span class="cmt"># 2. Configure (free key, no credit card)</span></span>
+          <span class="line"><span class="prompt">$</span>cp .env.example .env</span>
+          <span class="line"><span class="prompt">$</span>edit .env  <span class="cmt"># set FINNHUB_API_KEY=...</span></span>
+          <span class="line">&nbsp;</span>
+          <span class="line"><span class="cmt"># 3. Bring up all four services + Postgres</span></span>
+          <span class="line"><span class="prompt">$</span>docker compose up <span class="arg">-d</span> <span class="arg">--build</span></span>
+          <span class="line">&nbsp;</span>
+          <span class="line"><span class="cmt"># Open three URLs:</span></span>
+          <span class="line"><span class="prompt">&rsaquo;</span><span class="url">http://localhost:8501</span> <span class="cmt">// dashboard</span></span>
+          <span class="line"><span class="prompt">&rsaquo;</span><span class="url">http://localhost:8000/health</span> <span class="cmt">// api</span></span>
+          <span class="line"><span class="prompt">&rsaquo;</span><span class="url">http://localhost:8080/health</span> <span class="cmt">// matching engine</span></span>
+          <span class="line">&nbsp;</span>
+          <span class="line"><span class="cmt"># Run the tests (no mocks, real Postgres via testcontainers)</span></span>
+          <span class="line"><span class="prompt">$</span>pytest <span class="arg">-v</span></span>
+          <span class="line"><span class="prompt">$</span>cd matching-engine &amp;&amp; mvn <span class="arg">-B</span> test<span class="blink"></span></span>
+        </div>
+
+        <div class="qs-card">
+          <h4>Live Endpoints</h4>
+          <div class="qs-list">
+            <a href="http://3.232.132.2:8501" target="_blank" rel="noopener">
+              <span class="left">Dashboard</span><span class="right">3.232.132.2:8501  &rsaquo;</span>
+            </a>
+            <a href="http://3.232.132.2:8000/health" target="_blank" rel="noopener">
+              <span class="left">API health</span><span class="right">/health  &rsaquo;</span>
+            </a>
+            <a href="http://3.232.132.2:8000/alerts" target="_blank" rel="noopener">
+              <span class="left">API alerts</span><span class="right">/alerts  &rsaquo;</span>
+            </a>
+            <a href="http://3.232.132.2:8080/book/SYNTH1/top" target="_blank" rel="noopener">
+              <span class="left">Top of book</span><span class="right">/book/&hellip;/top  &rsaquo;</span>
+            </a>
+            <a href="https://github.com/shulman33/goldman-portfolio" target="_blank" rel="noopener">
+              <span class="left">Source</span><span class="right">github.com  &rsaquo;</span>
+            </a>
+            <a href="https://github.com/shulman33/goldman-portfolio/actions" target="_blank" rel="noopener">
+              <span class="left">CI status</span><span class="right">actions  &rsaquo;</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-lockup">
+          The Portfolio Ledger, written and printed by Sam Shulman, in service of an application to Goldman Sachs.
+        </div>
+        <div class="foot-meta">
+          GitHub · <a href="https://github.com/shulman33/goldman-portfolio" target="_blank" rel="noopener">shulman33/goldman-portfolio</a><br />
+          Live · <a href="http://3.232.132.2:8501" target="_blank" rel="noopener">3.232.132.2:8501</a><br />
+          Data · <a href="https://finnhub.io" target="_blank" rel="noopener">Finnhub.io</a>
+        </div>
+      </div>
+      <div class="foot-fine">
+        <span>Single-edition broadsheet · May 2026 · Late edition</span>
+        <span>Set in Fraunces (Undercase Type) and IBM Plex Mono (IBM)</span>
+        <span>Market data: Finnhub. Personal portfolio use.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Reveal on scroll via IntersectionObserver. Honors prefers-reduced-motion.
+    (function () {
+      var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var items = document.querySelectorAll(".reveal");
+      if (reduce) {
+        items.forEach(function (el) { el.classList.add("visible"); });
+        return;
+      }
+      if (!("IntersectionObserver" in window)) {
+        items.forEach(function (el) { el.classList.add("visible"); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e, idx) {
+          if (e.isIntersecting) {
+            var delay = Math.min(idx * 60, 240);
+            setTimeout(function () { e.target.classList.add("visible"); }, delay);
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+      items.forEach(function (el) { io.observe(el); });
+    })();
+  </script>
+</body>
+</html>
