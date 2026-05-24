@@ -41,14 +41,33 @@ services:
       - "8000:8000"
     restart: unless-stopped
 
+  matching-engine:
+    build:
+      context: .
+      dockerfile: matching-engine/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://app:app@postgres:5432/market
+      HTTP_PORT: "8080"
+      ME_SYMBOLS: SYNTH1,SYNTH2
+      ME_SEED: "42"
+      ME_BASE_PRICE: "100.00"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
   dashboard:
     build:
       context: .
       dockerfile: dashboard/Dockerfile
     environment:
       API_URL: http://api:8000
+      MATCHING_ENGINE_URL: http://matching-engine:8080
     depends_on:
       - api
+      - matching-engine
     ports:
       - "8501:8501"
     restart: unless-stopped
