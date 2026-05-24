@@ -1,6 +1,6 @@
 # goldman-portfolio
 
-> A four-service stack written for the Goldman Sachs Software Engineer Analyst application. Python ingestor on the Finnhub WebSocket, FastAPI, a Java limit-order-book matching engine, Streamlit dashboard, Postgres. Deployed on AWS Lightsail.
+> A four-service stack for real-time market data and limit-order-book matching. Python ingestor on the Finnhub WebSocket, FastAPI, a Java matching engine with price-time priority, Streamlit dashboard, Postgres. Deployed on AWS Lightsail.
 
 ### → [Read the full project writeup](https://shulman33.github.io/goldman-portfolio/)
 
@@ -9,7 +9,7 @@ architecture diagram, design notes, code samples, and the JD-keyword payoff in
 one editorial-format page. This file only covers what a GitHub-native reader
 needs to clone and run the repo.
 
-- Live demo: http://3.232.132.2:8501
+- Live demo: http://98.83.89.166:8501
 - Project showcase: https://shulman33.github.io/goldman-portfolio/
 - CI: https://github.com/shulman33/goldman-portfolio/actions
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Portfolio Ledger · A Real-Time Market Data Pipeline + Limit-Order-Book Matching Engine</title>
-  <meta name="description" content="A four-service stack ingesting real-time Finnhub trades, running rolling z-score anomaly detection, and simulating a price-time-priority matching engine. Built as a portfolio piece for the Goldman Sachs SWE Analyst application." />
+  <meta name="description" content="A four-service stack ingesting real-time Finnhub trades, running rolling z-score anomaly detection, and simulating a price-time-priority limit-order-book matching engine. Live on AWS." />
   <meta name="author" content="Sam Shulman" />
   <meta property="og:title" content="The Portfolio Ledger · Sam Shulman" />
   <meta property="og:description" content="Real-time market data + a Java limit-order-book matching engine. Live on AWS." />
@@ -912,7 +912,7 @@
         <div class="masthead-side right">Late Edition  ·  May 2026</div>
       </div>
       <div class="masthead-tagline">
-        A single-edition broadsheet on a four-service stack, written for the Goldman Sachs Software Engineer Analyst application.
+        A single-edition broadsheet on a four-service stack for real-time market data and limit-order-book matching.
       </div>
       <nav class="masthead-nav">
         <a href="#position">Position</a>
@@ -920,7 +920,7 @@
         <a href="#architecture">Architecture</a>
         <a href="#engineer">Deep Dive</a>
         <a href="#quickstart">Try It</a>
-        <a href="http://3.232.132.2:8501" class="primary" target="_blank" rel="noopener">Live Demo  ›</a>
+        <a href="http://98.83.89.166:8501" class="primary" target="_blank" rel="noopener">Live Demo  ›</a>
       </nav>
     </div>
   </header>
@@ -950,7 +950,7 @@
   <!-- ============ HERO ============ -->
   <section class="hero" id="top">
     <div class="wrap">
-      <div class="hero-kicker reveal">PORTFOLIO  ·  PROJECT NO. 1  ·  SHIPPED 2026</div>
+      <div class="hero-kicker reveal">PORTFOLIO  ·  LIVE ON AWS  ·  MAY 2026</div>
       <div class="hero-grid">
         <div>
           <h1 class="reveal">
@@ -967,7 +967,7 @@
             through a single Streamlit dashboard. By Sam Shulman.
           </p>
           <div class="hero-ctas reveal">
-            <a class="btn btn-primary" href="http://3.232.132.2:8501" target="_blank" rel="noopener">
+            <a class="btn btn-primary" href="http://98.83.89.166:8501" target="_blank" rel="noopener">
               View the Live Demo
               <span class="btn-arrow">›</span>
             </a>
@@ -1003,10 +1003,9 @@
       <div class="section-head reveal">
         <div class="section-num">§ 01</div>
         <div class="section-kicker">The Position Summary</div>
-        <h2 class="section-headline">A one-line read for the <em>thirty-second skim.</em></h2>
+        <h2 class="section-headline">By the <em>numbers.</em></h2>
         <p class="section-lede">
-          The project below maps the Goldman Sachs Software Engineer Analyst job description, keyword by keyword, against a stack that actually runs.
-          What follows is the headline data.
+          The headline data. Every figure below maps to a specific file in the repo. No abstractions, no hand-waves.
         </p>
       </div>
 
@@ -1020,8 +1019,8 @@
           <div class="position-value">4<small>plus a Postgres instance</small></div>
         </div>
         <div class="position-cell">
-          <div class="position-label">Tests</div>
-          <div class="position-value">46<small>real, no mocks</small></div>
+          <div class="position-label">Submit cost</div>
+          <div class="position-value">O(log&nbsp;n)<small>k-level TreeMap sweep</small></div>
         </div>
         <div class="position-cell">
           <div class="position-label">DS&amp;A pieces</div>
@@ -1032,13 +1031,9 @@
           <div class="position-value">AWS<small>Lightsail, us-east-1</small></div>
         </div>
         <div class="position-cell">
-          <div class="position-label">Build window</div>
-          <div class="position-value">72h<small>start to live URL</small></div>
+          <div class="position-label">Cancel cost</div>
+          <div class="position-value">O(1)<small>HashMap + intrusive unlink</small></div>
         </div>
-      </div>
-
-      <div class="position-note">
-        Every figure here links to a specific file in the repo. No abstractions, no hand-waves.
       </div>
     </div>
   </section>
@@ -1048,35 +1043,11 @@
     <div class="wrap">
       <div class="section-head reveal">
         <div class="section-num">§ 02</div>
-        <div class="section-kicker">At a glance</div>
-        <h2 class="section-headline">Two readers. <em>One page.</em></h2>
+        <div class="section-kicker">Across the stack</div>
+        <h2 class="section-headline">Twelve capabilities, <em>one repo.</em></h2>
         <p class="section-lede">
-          This site speaks to two people at once. A non-technical reader checking that the candidate did the work and the work runs. A technical reader looking to confirm the candidate can defend it in an interview. Below: what each sees first.
+          What the project actually demonstrates, named. Each cell below points at a specific subsystem and the file it lives in. The repo backs every claim.
         </p>
-      </div>
-
-      <div class="audience-tabs reveal">
-        <div class="audience-col">
-          <div class="audience-tag">For the Recruiter</div>
-          <div class="audience-name">A working <em>portfolio,</em> not a slide deck.</div>
-          <p class="audience-text">
-            Click the <strong>Live Demo</strong> button at the top and a Streamlit dashboard loads with real Finnhub market data during US trading hours, plus an always-on limit-order-book simulation.
-            The same code that ships here is what runs on AWS. No staging gap, no shrink-wrapped marketing copy.
-          </p>
-          <p class="audience-text">
-            The candidate built it in roughly seventy-two hours across three working sessions. The repo lists each session's decisions in a way that an engineering manager can audit.
-          </p>
-        </div>
-        <div class="audience-col">
-          <div class="audience-tag">For the Interviewer</div>
-          <div class="audience-name">Read the <em>order-book</em> code first.</div>
-          <p class="audience-text">
-            The matching engine is the conversation. <strong>TreeMap of PriceLevel</strong> by price (reverse-ordered for bids), each level a doubly-linked FIFO of orders, with a <strong>HashMap order-id index</strong> for O(1) cancel. Match() sweeps the opposite tree, walks the FIFO, books trades, removes empty levels.
-          </p>
-          <p class="audience-text">
-            The Python side does its own DS&amp;A work in <strong>RollingZScore</strong>: a fixed-size deque with running sum and running sum-of-squares, evicting the oldest element before append so variance stays O(1) per tick.
-          </p>
-        </div>
       </div>
 
       <div class="jd-grid reveal">
@@ -1257,10 +1228,10 @@
     <div class="wrap">
       <div class="section-head reveal">
         <div class="section-num">§ 04</div>
-        <div class="section-kicker">For the interviewer</div>
-        <h2 class="section-headline">Three pieces I would <em>defend</em> in a whiteboard.</h2>
+        <div class="section-kicker">In depth</div>
+        <h2 class="section-headline">Three pieces, <em>in detail.</em></h2>
         <p class="section-lede">
-          What follows is the substance, not the surface. Each piece names the data structure, names the cost in big-O, and shows the exact code at the file and line it lives in.
+          The substance, not the surface. Each piece names the data structure, names the cost in big-O, and shows the code at the file and line it lives in.
         </p>
       </div>
 
@@ -1336,7 +1307,7 @@
       <article class="case reveal" id="case-microservices">
         <div class="case-meta">
           <div class="case-tag">Case III  ·  service boundaries</div>
-          <h3 class="case-title">The seams. <em>And what is on each side.</em></h3>
+          <h3 class="case-title">Four services, <em>two protocols.</em></h3>
           <div class="case-claim">
             "The dashboard never touches the database. The ingestor never touches the API. Two protocols carry the whole stack: HTTP and Postgres."
           </div>
@@ -1409,16 +1380,16 @@
         <div class="qs-card">
           <h4>Live Endpoints</h4>
           <div class="qs-list">
-            <a href="http://3.232.132.2:8501" target="_blank" rel="noopener">
-              <span class="left">Dashboard</span><span class="right">3.232.132.2:8501  &rsaquo;</span>
+            <a href="http://98.83.89.166:8501" target="_blank" rel="noopener">
+              <span class="left">Dashboard</span><span class="right">98.83.89.166:8501  &rsaquo;</span>
             </a>
-            <a href="http://3.232.132.2:8000/health" target="_blank" rel="noopener">
+            <a href="http://98.83.89.166:8000/health" target="_blank" rel="noopener">
               <span class="left">API health</span><span class="right">/health  &rsaquo;</span>
             </a>
-            <a href="http://3.232.132.2:8000/alerts" target="_blank" rel="noopener">
+            <a href="http://98.83.89.166:8000/alerts" target="_blank" rel="noopener">
               <span class="left">API alerts</span><span class="right">/alerts  &rsaquo;</span>
             </a>
-            <a href="http://3.232.132.2:8080/book/SYNTH1/top" target="_blank" rel="noopener">
+            <a href="http://98.83.89.166:8080/book/SYNTH1/top" target="_blank" rel="noopener">
               <span class="left">Top of book</span><span class="right">/book/&hellip;/top  &rsaquo;</span>
             </a>
             <a href="https://github.com/shulman33/goldman-portfolio" target="_blank" rel="noopener">
@@ -1438,11 +1409,11 @@
     <div class="wrap">
       <div class="foot-grid">
         <div class="foot-lockup">
-          The Portfolio Ledger, written and printed by Sam Shulman, in service of an application to Goldman Sachs.
+          The Portfolio Ledger. Written, set, and printed by Sam Shulman.
         </div>
         <div class="foot-meta">
           GitHub · <a href="https://github.com/shulman33/goldman-portfolio" target="_blank" rel="noopener">shulman33/goldman-portfolio</a><br />
-          Live · <a href="http://3.232.132.2:8501" target="_blank" rel="noopener">3.232.132.2:8501</a><br />
+          Live · <a href="http://98.83.89.166:8501" target="_blank" rel="noopener">98.83.89.166:8501</a><br />
           Data · <a href="https://finnhub.io" target="_blank" rel="noopener">Finnhub.io</a>
         </div>
       </div>
