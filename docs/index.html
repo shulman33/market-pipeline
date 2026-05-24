@@ -16,22 +16,22 @@
 
   <style>
     :root {
-      --ink: #06182C;
-      --ink-2: #142844;
-      --ink-soft: #2A3D58;
-      --paper: #F4EFE7;
-      --paper-2: #ECE5D8;
-      --paper-3: #E1D9C8;
-      --gold: #B5894C;
-      --gold-dim: #8C6939;
-      --gold-soft: #D4B47C;
-      --vermillion: #B22234;
-      --char: #0A0A0A;
-      --taupe: #8A8071;
-      --rule: rgba(6, 24, 44, 0.18);
-      --rule-strong: rgba(6, 24, 44, 0.42);
-      --rule-gold: rgba(181, 137, 76, 0.5);
-      --shadow-card: 0 1px 0 rgba(6, 24, 44, 0.07), 0 22px 38px -28px rgba(6, 24, 44, 0.35);
+      --ink: #00355f;
+      --ink-2: #002847;
+      --ink-soft: #58575a;
+      --paper: #ffffff;
+      --paper-2: #f3f8fc;
+      --paper-3: #acd4f1;
+      --gold: #7399c6;
+      --gold-dim: #00355f;
+      --gold-soft: #acd4f1;
+      --vermillion: #00355f;
+      --char: #231f20;
+      --taupe: #58575a;
+      --rule: rgba(0, 53, 95, 0.18);
+      --rule-strong: rgba(0, 53, 95, 0.42);
+      --rule-gold: rgba(115, 153, 198, 0.5);
+      --shadow-card: 0 1px 0 rgba(0, 53, 95, 0.07), 0 22px 38px -28px rgba(0, 53, 95, 0.35);
     }
 
     *, *::before, *::after {
@@ -56,9 +56,9 @@
       text-rendering: optimizeLegibility;
       -webkit-font-smoothing: antialiased;
       background-image:
-        radial-gradient(rgba(6, 24, 44, 0.018) 1px, transparent 1px),
-        radial-gradient(rgba(6, 24, 44, 0.012) 1px, transparent 1px),
-        linear-gradient(180deg, rgba(181, 137, 76, 0.03), transparent 22%);
+        radial-gradient(rgba(0, 53, 95, 0.018) 1px, transparent 1px),
+        radial-gradient(rgba(0, 53, 95, 0.012) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(115, 153, 198, 0.03), transparent 22%);
       background-size: 7px 7px, 13px 13px, 100% 100%;
       background-position: 0 0, 3px 5px, 0 0;
       min-height: 100vh;
@@ -87,7 +87,7 @@
       top: 0;
       z-index: 50;
       backdrop-filter: blur(6px);
-      background-color: rgba(244, 239, 231, 0.94);
+      background-color: rgba(255, 255, 255, 0.94);
     }
 
     .masthead-row {
@@ -197,8 +197,8 @@
     }
     .ticker-sym { font-weight: 500; color: var(--gold-soft); }
     .ticker-px { color: var(--paper); }
-    .ticker-chg.up { color: #62B97E; }
-    .ticker-chg.dn { color: #E66A6A; }
+    .ticker-chg.up { color: #7399c6; }
+    .ticker-chg.dn { color: #58575a; }
     .ticker-divider { color: var(--ink-soft); }
 
     @keyframes tickermove {
@@ -355,14 +355,14 @@
     .vitals-val { color: var(--ink); font-weight: 500; letter-spacing: 0.04em; }
     .vitals-val .live-dot {
       display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-      background: #62B97E; margin-right: 6px; vertical-align: 1px;
-      box-shadow: 0 0 0 0 rgba(98, 185, 126, 0.7);
+      background: #7399c6; margin-right: 6px; vertical-align: 1px;
+      box-shadow: 0 0 0 0 rgba(115, 153, 198, 0.7);
       animation: pulse 1.8s infinite;
     }
     @keyframes pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(98, 185, 126, 0.55); }
-      70%  { box-shadow: 0 0 0 10px rgba(98, 185, 126, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(98, 185, 126, 0); }
+      0%   { box-shadow: 0 0 0 0 rgba(115, 153, 198, 0.55); }
+      70%  { box-shadow: 0 0 0 10px rgba(115, 153, 198, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(115, 153, 198, 0); }
     }
 
     /* --------- COMMON SECTION SCAFFOLD --------- */
@@ -699,8 +699,8 @@
       align-items: center;
       justify-content: space-between;
       padding: 11px 16px;
-      background: rgba(244, 239, 231, 0.05);
-      border-bottom: 1px solid rgba(244, 239, 231, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
       font-family: "IBM Plex Mono", monospace;
       font-size: 10px;
       letter-spacing: 0.16em;
@@ -711,7 +711,7 @@
       display: inline-flex; gap: 6px;
     }
     .code-head .dots span {
-      width: 9px; height: 9px; border-radius: 50%; background: rgba(244, 239, 231, 0.18);
+      width: 9px; height: 9px; border-radius: 50%; background: rgba(255, 255, 255, 0.18);
     }
     .code-body {
       font-family: "IBM Plex Mono", monospace;
@@ -721,7 +721,7 @@
       overflow-x: auto;
       counter-reset: line;
       white-space: pre;
-      color: rgba(244, 239, 231, 0.92);
+      color: rgba(255, 255, 255, 0.95);
     }
     .code-body .line { display: block; }
     .code-body .line::before {
@@ -729,19 +729,19 @@
       content: counter(line, decimal-leading-zero);
       display: inline-block;
       width: 28px;
-      color: rgba(244, 239, 231, 0.28);
+      color: rgba(255, 255, 255, 0.28);
       margin-right: 14px;
       text-align: right;
       user-select: none;
     }
-    .tok-kw { color: #D4B47C; }
-    .tok-str { color: #B9DBA3; }
-    .tok-num { color: #E8B96F; }
-    .tok-fn  { color: #9AC8E8; }
-    .tok-cm  { color: rgba(244, 239, 231, 0.4); font-style: italic; }
-    .tok-cls { color: #E8C49A; }
-    .tok-op  { color: #D4B47C; }
-    .tok-self { color: #C8A2D3; font-style: italic; }
+    .tok-kw { color: #acd4f1; }
+    .tok-str { color: rgba(255, 255, 255, 0.62); }
+    .tok-num { color: #7399c6; }
+    .tok-fn  { color: #ffffff; }
+    .tok-cm  { color: rgba(255, 255, 255, 0.45); font-style: italic; }
+    .tok-cls { color: #acd4f1; }
+    .tok-op  { color: #acd4f1; }
+    .tok-self { color: #7399c6; font-style: italic; }
 
     /* --------- QUICKSTART --------- */
     .quickstart {
@@ -753,12 +753,12 @@
     .quickstart .section-headline em { color: var(--gold-soft); }
     .quickstart .section-num,
     .quickstart .section-kicker { color: var(--gold-soft); }
-    .quickstart .section-lede { color: rgba(244, 239, 231, 0.78); }
-    .quickstart .section-head { border-bottom-color: rgba(244, 239, 231, 0.18); }
+    .quickstart .section-lede { color: rgba(255, 255, 255, 0.78); }
+    .quickstart .section-head { border-bottom-color: rgba(255, 255, 255, 0.18); }
 
     .terminal {
-      background: rgba(244, 239, 231, 0.04);
-      border: 1px solid rgba(244, 239, 231, 0.18);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       padding: 22px 24px;
       font-family: "IBM Plex Mono", monospace;
       font-size: 13px;
@@ -767,9 +767,9 @@
       box-shadow: 0 24px 50px -32px rgba(0, 0, 0, 0.6);
     }
     .terminal .prompt { color: var(--gold-soft); user-select: none; margin-right: 10px; }
-    .terminal .cmt { color: rgba(244, 239, 231, 0.45); font-style: italic; }
-    .terminal .arg { color: #B9DBA3; }
-    .terminal .url { color: #9AC8E8; text-decoration: underline; text-decoration-color: rgba(154, 200, 232, 0.35); }
+    .terminal .cmt { color: rgba(255, 255, 255, 0.45); font-style: italic; }
+    .terminal .arg { color: #acd4f1; }
+    .terminal .url { color: #acd4f1; text-decoration: underline; text-decoration-color: rgba(172, 212, 241, 0.45); }
     .terminal .line { display: block; }
     .terminal .blink::after {
       content: "▌";
@@ -786,8 +786,8 @@
       align-items: start;
     }
     .qs-card {
-      background: rgba(244, 239, 231, 0.04);
-      border: 1px solid rgba(244, 239, 231, 0.18);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       padding: 22px 24px;
     }
     .qs-card h4 {
@@ -798,7 +798,7 @@
       text-transform: uppercase;
       padding-bottom: 14px;
       margin-bottom: 14px;
-      border-bottom: 1px solid rgba(244, 239, 231, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     }
     .qs-list {
       display: grid;
@@ -810,12 +810,12 @@
       display: flex; justify-content: space-between; gap: 12px;
       color: var(--paper);
       padding: 10px 0;
-      border-bottom: 1px dotted rgba(244, 239, 231, 0.15);
+      border-bottom: 1px dotted rgba(255, 255, 255, 0.15);
       transition: color 200ms ease;
     }
     .qs-list a:last-child { border-bottom: 0; }
     .qs-list a:hover { color: var(--gold-soft); }
-    .qs-list .left { letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; color: rgba(244, 239, 231, 0.6); }
+    .qs-list .left { letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; color: rgba(255, 255, 255, 0.6); }
     .qs-list .right { color: var(--paper); text-align: right; }
 
     /* --------- FOOTER --------- */
@@ -971,7 +971,7 @@
               View the Live Demo
               <span class="btn-arrow">›</span>
             </a>
-            <a class="btn btn-secondary" href="https://github.com/shulman33/goldman-portfolio" target="_blank" rel="noopener">
+            <a class="btn btn-secondary" href="https://github.com/shulman33/market-pipeline" target="_blank" rel="noopener">
               GitHub Source
               <span class="btn-arrow">›</span>
             </a>
@@ -1119,13 +1119,13 @@
         <svg viewBox="0 0 1200 620" role="img" aria-label="System architecture diagram">
           <defs>
             <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#06182C" />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#00355f" />
             </marker>
             <marker id="arrow-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#B5894C" />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#7399c6" />
             </marker>
             <pattern id="dotgrid" width="14" height="14" patternUnits="userSpaceOnUse">
-              <circle cx="1" cy="1" r="0.8" fill="rgba(6,24,44,0.07)"/>
+              <circle cx="1" cy="1" r="0.8" fill="rgba(0, 53, 95,0.07)"/>
             </pattern>
           </defs>
 
@@ -1133,91 +1133,91 @@
 
           <!-- FINNHUB CLOUD (external) -->
           <g transform="translate(80,30)">
-            <rect x="0" y="0" width="220" height="84" fill="#F4EFE7" stroke="#B5894C" stroke-width="1.5" stroke-dasharray="6 4" rx="2"/>
-            <text x="20" y="26" font-family="IBM Plex Mono" font-size="9" letter-spacing="2" fill="#8C6939">EXTERNAL · WSS</text>
-            <text x="20" y="55" font-family="Fraunces" font-style="italic" font-size="22" fill="#06182C">Finnhub.io</text>
-            <text x="20" y="74" font-family="IBM Plex Mono" font-size="10" fill="#2A3D58">wss://ws.finnhub.io</text>
+            <rect x="0" y="0" width="220" height="84" fill="#ffffff" stroke="#7399c6" stroke-width="1.5" stroke-dasharray="6 4" rx="2"/>
+            <text x="20" y="26" font-family="IBM Plex Mono" font-size="9" letter-spacing="2" fill="#00355f">EXTERNAL · WSS</text>
+            <text x="20" y="55" font-family="Fraunces" font-style="italic" font-size="22" fill="#00355f">Finnhub.io</text>
+            <text x="20" y="74" font-family="IBM Plex Mono" font-size="10" fill="#58575a">wss://ws.finnhub.io</text>
           </g>
 
           <!-- INGESTOR -->
           <g transform="translate(80,200)">
-            <rect x="0" y="0" width="260" height="160" fill="#06182C" rx="2"/>
-            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#D4B47C">SERVICE · PYTHON</text>
-            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#F4EFE7">ingestor</text>
-            <line x1="20" y1="78" x2="240" y2="78" stroke="rgba(244,239,231,0.18)" stroke-width="1"/>
-            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ async WebSocket loop</text>
-            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ RollingZScore detector</text>
-            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ exp backoff + watchdog</text>
+            <rect x="0" y="0" width="260" height="160" fill="#00355f" rx="2"/>
+            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#acd4f1">SERVICE · PYTHON</text>
+            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#ffffff">ingestor</text>
+            <line x1="20" y1="78" x2="240" y2="78" stroke="rgba(255, 255, 255,0.18)" stroke-width="1"/>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">+ async WebSocket loop</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">+ RollingZScore detector</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">+ exp backoff + watchdog</text>
           </g>
 
           <!-- POSTGRES -->
           <g transform="translate(450,200)">
-            <ellipse cx="130" cy="14" rx="130" ry="14" fill="#142844"/>
-            <rect x="0" y="14" width="260" height="132" fill="#06182C"/>
-            <ellipse cx="130" cy="146" rx="130" ry="14" fill="#06182C"/>
-            <ellipse cx="130" cy="14" rx="130" ry="14" fill="none" stroke="#B5894C" stroke-width="1"/>
-            <text x="20" y="40" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#D4B47C">DATA</text>
-            <text x="20" y="74" font-family="Fraunces" font-style="italic" font-size="28" fill="#F4EFE7">postgres 16</text>
-            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">ticks · alerts</text>
-            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">me_orders · me_trades</text>
-            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">me_book_snapshots</text>
+            <ellipse cx="130" cy="14" rx="130" ry="14" fill="#002847"/>
+            <rect x="0" y="14" width="260" height="132" fill="#00355f"/>
+            <ellipse cx="130" cy="146" rx="130" ry="14" fill="#00355f"/>
+            <ellipse cx="130" cy="14" rx="130" ry="14" fill="none" stroke="#7399c6" stroke-width="1"/>
+            <text x="20" y="40" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#acd4f1">DATA</text>
+            <text x="20" y="74" font-family="Fraunces" font-style="italic" font-size="28" fill="#ffffff">postgres 16</text>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">ticks · alerts</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">me_orders · me_trades</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">me_book_snapshots</text>
           </g>
 
           <!-- API -->
           <g transform="translate(820,200)">
-            <rect x="0" y="0" width="260" height="160" fill="#06182C" rx="2"/>
-            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#D4B47C">SERVICE · PYTHON</text>
-            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#F4EFE7">api</text>
-            <line x1="20" y1="78" x2="240" y2="78" stroke="rgba(244,239,231,0.18)" stroke-width="1"/>
-            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">GET /health</text>
-            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">GET /prices/&#123;symbol&#125;</text>
-            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">GET /alerts</text>
+            <rect x="0" y="0" width="260" height="160" fill="#00355f" rx="2"/>
+            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#acd4f1">SERVICE · PYTHON</text>
+            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#ffffff">api</text>
+            <line x1="20" y1="78" x2="240" y2="78" stroke="rgba(255, 255, 255,0.18)" stroke-width="1"/>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">GET /health</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">GET /prices/&#123;symbol&#125;</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">GET /alerts</text>
           </g>
 
           <!-- MATCHING ENGINE -->
           <g transform="translate(80,430)">
-            <rect x="0" y="0" width="320" height="150" fill="#142844" rx="2"/>
-            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#D4B47C">SERVICE · JAVA 17</text>
-            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#F4EFE7">matching-engine</text>
-            <line x1="20" y1="78" x2="300" y2="78" stroke="rgba(244,239,231,0.18)" stroke-width="1"/>
-            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ TreeMap order book per symbol</text>
-            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ synthetic generator @ 50 ms</text>
-            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(244,239,231,0.78)">+ HTTP via Javalin</text>
+            <rect x="0" y="0" width="320" height="150" fill="#002847" rx="2"/>
+            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#acd4f1">SERVICE · JAVA 17</text>
+            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#ffffff">matching-engine</text>
+            <line x1="20" y1="78" x2="300" y2="78" stroke="rgba(255, 255, 255,0.18)" stroke-width="1"/>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">+ TreeMap order book per symbol</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">+ synthetic generator @ 50 ms</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(255, 255, 255,0.78)">+ HTTP via Javalin</text>
           </g>
 
           <!-- DASHBOARD -->
           <g transform="translate(820,430)">
-            <rect x="0" y="0" width="260" height="150" fill="#B5894C" rx="2"/>
-            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#06182C">SERVICE · STREAMLIT</text>
-            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#06182C">dashboard</text>
-            <line x1="20" y1="78" x2="240" y2="78" stroke="rgba(6,24,44,0.25)" stroke-width="1"/>
-            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(6,24,44,0.78)">page 1 · Finnhub view</text>
-            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(6,24,44,0.78)">page 2 · matching engine</text>
-            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(6,24,44,0.78)">10 s autorefresh / 2 Hz</text>
+            <rect x="0" y="0" width="260" height="150" fill="#7399c6" rx="2"/>
+            <text x="20" y="28" font-family="IBM Plex Mono" font-size="9" letter-spacing="2.5" fill="#00355f">SERVICE · STREAMLIT</text>
+            <text x="20" y="60" font-family="Fraunces" font-style="italic" font-size="28" fill="#00355f">dashboard</text>
+            <line x1="20" y1="78" x2="240" y2="78" stroke="rgba(0, 53, 95,0.25)" stroke-width="1"/>
+            <text x="20" y="100" font-family="IBM Plex Mono" font-size="11" fill="rgba(0, 53, 95,0.78)">page 1 · Finnhub view</text>
+            <text x="20" y="118" font-family="IBM Plex Mono" font-size="11" fill="rgba(0, 53, 95,0.78)">page 2 · matching engine</text>
+            <text x="20" y="136" font-family="IBM Plex Mono" font-size="11" fill="rgba(0, 53, 95,0.78)">10 s autorefresh / 2 Hz</text>
           </g>
 
           <!-- FLOW LINES -->
-          <path d="M 190 114 L 190 200" stroke="#B5894C" stroke-width="1.6" fill="none" marker-end="url(#arrow-gold)"/>
-          <text x="200" y="160" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#8C6939">TRADES</text>
-          <path d="M 340 280 L 450 280" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
-          <text x="360" y="272" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">INSERT</text>
-          <path d="M 710 280 L 820 280" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
-          <text x="735" y="272" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">SELECT</text>
-          <path d="M 400 460 C 540 460, 540 380, 580 360" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
-          <text x="460" y="448" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">JOURNAL</text>
-          <path d="M 950 360 L 950 430" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
-          <text x="960" y="400" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">HTTP</text>
-          <path d="M 400 540 C 540 540, 540 540, 820 510" stroke="#06182C" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
-          <text x="540" y="528" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#06182C">HTTP</text>
+          <path d="M 190 114 L 190 200" stroke="#7399c6" stroke-width="1.6" fill="none" marker-end="url(#arrow-gold)"/>
+          <text x="200" y="160" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#00355f">TRADES</text>
+          <path d="M 340 280 L 450 280" stroke="#00355f" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="360" y="272" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#00355f">INSERT</text>
+          <path d="M 710 280 L 820 280" stroke="#00355f" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="735" y="272" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#00355f">SELECT</text>
+          <path d="M 400 460 C 540 460, 540 380, 580 360" stroke="#00355f" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="460" y="448" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#00355f">JOURNAL</text>
+          <path d="M 950 360 L 950 430" stroke="#00355f" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="960" y="400" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#00355f">HTTP</text>
+          <path d="M 400 540 C 540 540, 540 540, 820 510" stroke="#00355f" stroke-width="1.6" fill="none" marker-end="url(#arrow)"/>
+          <text x="540" y="528" font-family="IBM Plex Mono" font-size="9" letter-spacing="1.5" fill="#00355f">HTTP</text>
 
-          <text x="1180" y="600" text-anchor="end" font-family="IBM Plex Mono" font-size="9" letter-spacing="3" fill="#8C6939">PORTFOLIO · LEDGER</text>
+          <text x="1180" y="600" text-anchor="end" font-family="IBM Plex Mono" font-size="9" letter-spacing="3" fill="#00355f">PORTFOLIO · LEDGER</text>
         </svg>
 
         <div class="arch-legend">
-          <span><span class="legend-swatch" style="background:#06182C"></span>Python service</span>
-          <span><span class="legend-swatch" style="background:#142844"></span>JVM service</span>
-          <span><span class="legend-swatch" style="background:#B5894C"></span>UI surface</span>
-          <span><span class="legend-swatch" style="background:#F4EFE7; border:1px solid #B5894C"></span>External</span>
+          <span><span class="legend-swatch" style="background:#00355f"></span>Python service</span>
+          <span><span class="legend-swatch" style="background:#002847"></span>JVM service</span>
+          <span><span class="legend-swatch" style="background:#7399c6"></span>UI surface</span>
+          <span><span class="legend-swatch" style="background:#ffffff; border:1px solid #7399c6"></span>External</span>
         </div>
       </div>
     </div>
@@ -1357,8 +1357,8 @@
       <div class="quickstart-grid reveal">
         <div class="terminal" role="region" aria-label="Quickstart terminal commands">
           <span class="line"><span class="cmt"># 1. Clone</span></span>
-          <span class="line"><span class="prompt">$</span>git clone https://github.com/shulman33/goldman-portfolio.git</span>
-          <span class="line"><span class="prompt">$</span>cd goldman-portfolio</span>
+          <span class="line"><span class="prompt">$</span>git clone https://github.com/shulman33/market-pipeline.git</span>
+          <span class="line"><span class="prompt">$</span>cd market-pipeline</span>
           <span class="line">&nbsp;</span>
           <span class="line"><span class="cmt"># 2. Configure (free key, no credit card)</span></span>
           <span class="line"><span class="prompt">$</span>cp .env.example .env</span>
@@ -1392,10 +1392,10 @@
             <a href="http://98.83.89.166:8080/book/SYNTH1/top" target="_blank" rel="noopener">
               <span class="left">Top of book</span><span class="right">/book/&hellip;/top  &rsaquo;</span>
             </a>
-            <a href="https://github.com/shulman33/goldman-portfolio" target="_blank" rel="noopener">
+            <a href="https://github.com/shulman33/market-pipeline" target="_blank" rel="noopener">
               <span class="left">Source</span><span class="right">github.com  &rsaquo;</span>
             </a>
-            <a href="https://github.com/shulman33/goldman-portfolio/actions" target="_blank" rel="noopener">
+            <a href="https://github.com/shulman33/market-pipeline/actions" target="_blank" rel="noopener">
               <span class="left">CI status</span><span class="right">actions  &rsaquo;</span>
             </a>
           </div>
@@ -1412,7 +1412,7 @@
           The Portfolio Ledger. Written, set, and printed by Sam Shulman.
         </div>
         <div class="foot-meta">
-          GitHub · <a href="https://github.com/shulman33/goldman-portfolio" target="_blank" rel="noopener">shulman33/goldman-portfolio</a><br />
+          GitHub · <a href="https://github.com/shulman33/market-pipeline" target="_blank" rel="noopener">shulman33/market-pipeline</a><br />
           Live · <a href="http://98.83.89.166:8501" target="_blank" rel="noopener">98.83.89.166:8501</a><br />
           Data · <a href="https://finnhub.io" target="_blank" rel="noopener">Finnhub.io</a>
         </div>

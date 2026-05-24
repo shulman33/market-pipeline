@@ -1,8 +1,8 @@
-# goldman-portfolio
+# market-pipeline
 
 > A four-service stack for real-time market data and limit-order-book matching. Python ingestor on the Finnhub WebSocket, FastAPI, a Java matching engine with price-time priority, Streamlit dashboard, Postgres. Deployed on AWS Lightsail.
 
-### → [Read the full project writeup](https://shulman33.github.io/goldman-portfolio/)
+### → [Read the full project writeup](https://shulman33.github.io/market-pipeline/)
 
 The showcase page is the canonical entry point. It carries the live URL,
 architecture diagram, design notes, code samples, and the JD-keyword payoff in
@@ -10,16 +10,16 @@ one editorial-format page. This file only covers what a GitHub-native reader
 needs to clone and run the repo.
 
 - Live demo: http://98.83.89.166:8501
-- Project showcase: https://shulman33.github.io/goldman-portfolio/
-- CI: https://github.com/shulman33/goldman-portfolio/actions
+- Project showcase: https://shulman33.github.io/market-pipeline/
+- CI: https://github.com/shulman33/market-pipeline/actions
 
 ## Quickstart
 
 Requires Docker and a free Finnhub API key (no credit card needed).
 
 ```bash
-git clone https://github.com/shulman33/goldman-portfolio.git
-cd goldman-portfolio
+git clone https://github.com/shulman33/market-pipeline.git
+cd market-pipeline
 cp .env.example .env
 # Edit .env: set FINNHUB_API_KEY=<your key from https://finnhub.io>
 docker compose up -d --build
@@ -67,7 +67,7 @@ then exercises the actual `psycopg` driver and ASGI stack.
 ## Enabling the showcase on GitHub Pages
 
 The showcase lives at `docs/index.html`. To serve it from
-`https://shulman33.github.io/goldman-portfolio/`:
+`https://shulman33.github.io/market-pipeline/`:
 
 1. Repo Settings, Pages.
 2. Source: Deploy from a branch.
@@ -78,7 +78,7 @@ The showcase lives at `docs/index.html`. To serve it from
 
 Currently running on AWS Lightsail (Ubuntu 24.04, 2 GB), the entire
 `docker-compose.yml` brought up unchanged on one instance. See the
-[Deployment section of the showcase](https://shulman33.github.io/goldman-portfolio/#quickstart)
+[Deployment section of the showcase](https://shulman33.github.io/market-pipeline/#quickstart)
 and the per-session writeups in `session-summaries/` for the deploy story.
 
 ## Status
