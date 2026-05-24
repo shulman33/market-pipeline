@@ -21,17 +21,24 @@ PRICE_LIMIT = 200
 SIDEBAR_ALERT_LIMIT = 10
 OVERLAY_ALERT_LIMIT = 200
 REFRESH_INTERVAL_MS = 10_000
+# Match the cache TTL to the refresh interval so the cache actually
+# deduplicates within one refresh tick instead of always missing.
+CACHE_TTL_S = 10
 
 st.set_page_config(page_title="Market Data Live", layout="wide")
 st_autorefresh(interval=REFRESH_INTERVAL_MS, key="autorefresh")
 
 
-@st.cache_data(ttl=5)
+@st.cache_resource
+def _api_client() -> httpx.Client:
+    return httpx.Client(base_url=API_URL, timeout=5.0)
+
+
+@st.cache_data(ttl=CACHE_TTL_S)
 def fetch_prices(symbol: str, limit: int) -> pd.DataFrame:
-    with httpx.Client(base_url=API_URL, timeout=5.0) as client:
-        r = client.get(f"/prices/{symbol}", params={"limit": limit})
-        r.raise_for_status()
-        data = r.json()
+    r = _api_client().get(f"/prices/{symbol}", params={"limit": limit})
+    r.raise_for_status()
+    data = r.json()
     if not data:
         return pd.DataFrame(columns=["ts", "price"])
     df = pd.DataFrame(data)
@@ -39,12 +46,11 @@ def fetch_prices(symbol: str, limit: int) -> pd.DataFrame:
     return df.sort_values("ts")
 
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=CACHE_TTL_S)
 def fetch_alerts(limit: int) -> pd.DataFrame:
-    with httpx.Client(base_url=API_URL, timeout=5.0) as client:
-        r = client.get("/alerts", params={"limit": limit})
-        r.raise_for_status()
-        data = r.json()
+    r = _api_client().get("/alerts", params={"limit": limit})
+    r.raise_for_status()
+    data = r.json()
     if not data:
         return pd.DataFrame(columns=["symbol", "ts", "price", "z_score", "message"])
     df = pd.DataFrame(data)
@@ -101,7 +107,7 @@ else:
 
 with st.sidebar:
     st.subheader("Recent Alerts")
-    sidebar_alerts = fetch_alerts(SIDEBAR_ALERT_LIMIT)
+    sidebar_alerts = alerts_all.head(SIDEBAR_ALERT_LIMIT)
     if sidebar_alerts.empty:
         st.caption("No alerts yet.")
     else:

@@ -21,12 +21,17 @@ def test_first_update_returns_no_zscore():
 
 
 def test_no_alert_before_warmup():
-    # 60 prices produce 59 returns. Window not full -> no z-score, no alert.
     rz = RollingZScore(window_size=60, threshold=2.5)
     for i in range(60):
         result = rz.update(100.0 + i * 0.01)
         assert result.is_anomaly is False
         assert result.z_score is None
+    # The 61st update is the boundary: window has exactly 60 returns and a
+    # z-score should now be computed (a finite float, not anomalous on this
+    # monotonic series).
+    boundary = rz.update(100.0 + 60 * 0.01)
+    assert boundary.z_score is not None
+    assert boundary.is_anomaly is False
 
 
 def test_flat_series_handles_zero_variance():

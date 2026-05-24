@@ -103,12 +103,10 @@ def apply_schema_if_missing(dsn: str) -> None:
     initialised volume, we skip the apply when `ticks` already exists.
     """
     with psycopg.connect(dsn) as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT to_regclass('public.ticks')")
-            row = cur.fetchone()
-            if row is not None and row[0] is not None:
-                log.info("schema already present, skipping apply")
-                return
+        row = conn.execute("SELECT to_regclass('public.ticks')").fetchone()
+        if row is not None and row[0] is not None:
+            log.info("schema already present, skipping apply")
+            return
         log.info("applying sql/schema.sql")
         conn.execute(SCHEMA_PATH.read_text())
         conn.commit()
@@ -127,24 +125,26 @@ async def _handle_trade(
     volume = trade.get("v")
     ts = dt.datetime.fromtimestamp(t_ms / 1000.0, tz=dt.UTC)
 
-    await conn.execute(
-        "INSERT INTO ticks (symbol, ts, price, volume) VALUES (%s, %s, %s, %s) "
-        "ON CONFLICT (symbol, ts) DO NOTHING",
-        (symbol, ts, price, volume),
-    )
-
     detector = detectors.get(symbol)
-    if detector is None:
-        return
-    result = detector.update(float(price))
-    if result.is_anomaly and result.z_score is not None:
-        message = f"{symbol} spike: z={result.z_score:+.2f} @ {price}"
+    result = detector.update(float(price)) if detector is not None else None
+
+    # A tick and its derived alert are written in one transaction so a crash
+    # between the two cannot leave a price spike on the chart without its
+    # corresponding alert marker.
+    async with conn.transaction():
         await conn.execute(
-            "INSERT INTO alerts (symbol, ts, price, z_score, message) "
-            "VALUES (%s, %s, %s, %s, %s)",
-            (symbol, ts, price, result.z_score, message),
+            "INSERT INTO ticks (symbol, ts, price, volume) VALUES (%s, %s, %s, %s) "
+            "ON CONFLICT (symbol, ts) DO NOTHING",
+            (symbol, ts, price, volume),
         )
-        log.warning("alert: %s", message)
+        if result is not None and result.is_anomaly and result.z_score is not None:
+            message = f"{symbol} spike: z={result.z_score:+.2f} @ {price}"
+            await conn.execute(
+                "INSERT INTO alerts (symbol, ts, price, z_score, message) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (symbol, ts, price, result.z_score, message),
+            )
+            log.warning("alert: %s", message)
 
 
 async def _watchdog(ws, state: StreamState) -> None:
@@ -174,7 +174,11 @@ async def _run_connection(
         watchdog_task = asyncio.create_task(_watchdog(ws, state))
         try:
             async for raw in ws:
-                msg = json.loads(raw)
+                try:
+                    msg = json.loads(raw)
+                except json.JSONDecodeError:
+                    log.warning("non-JSON frame, skipping: %r", raw[:200])
+                    continue
                 if msg.get("type") != "trade":
                     continue
                 state.last_trade_monotonic = time.monotonic()

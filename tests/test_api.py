@@ -24,6 +24,27 @@ from testcontainers.postgres import PostgresContainer
 
 SCHEMA_PATH = Path(__file__).parent.parent / "sql" / "schema.sql"
 
+INSERT_TICK_SQL = (
+    "INSERT INTO ticks (symbol, ts, price, volume) VALUES (%s, %s, %s, %s)"
+)
+INSERT_ALERT_SQL = (
+    "INSERT INTO alerts (symbol, ts, price, z_score, message) "
+    "VALUES (%s, %s, %s, %s, %s)"
+)
+
+
+async def _run_sql(url: str, sql: str, params: tuple | None = None) -> None:
+    async with await psycopg.AsyncConnection.connect(url) as conn:
+        await conn.execute(sql, params)
+        await conn.commit()
+
+
+async def _run_sql_many(url: str, sql: str, rows: list[tuple]) -> None:
+    async with await psycopg.AsyncConnection.connect(url) as conn:
+        async with conn.cursor() as cur:
+            await cur.executemany(sql, rows)
+        await conn.commit()
+
 
 @pytest.fixture(scope="module")
 def postgres_url() -> AsyncIterator[str]:
@@ -49,32 +70,19 @@ async def client(postgres_url: str) -> AsyncIterator[httpx.AsyncClient]:
 
 @pytest_asyncio.fixture(autouse=True)
 async def reset_db(postgres_url: str) -> None:
-    async with await psycopg.AsyncConnection.connect(postgres_url) as conn:
-        await conn.execute("TRUNCATE ticks, alerts RESTART IDENTITY")
-        await conn.commit()
+    await _run_sql(postgres_url, "TRUNCATE ticks, alerts RESTART IDENTITY")
 
 
 async def _insert_tick(
     url: str, symbol: str, ts: dt.datetime, price: float, volume: int | None = None
 ) -> None:
-    async with await psycopg.AsyncConnection.connect(url) as conn:
-        await conn.execute(
-            "INSERT INTO ticks (symbol, ts, price, volume) VALUES (%s, %s, %s, %s)",
-            (symbol, ts, price, volume),
-        )
-        await conn.commit()
+    await _run_sql(url, INSERT_TICK_SQL, (symbol, ts, price, volume))
 
 
 async def _insert_alert(
     url: str, symbol: str, ts: dt.datetime, price: float, z_score: float, message: str
 ) -> None:
-    async with await psycopg.AsyncConnection.connect(url) as conn:
-        await conn.execute(
-            "INSERT INTO alerts (symbol, ts, price, z_score, message) "
-            "VALUES (%s, %s, %s, %s, %s)",
-            (symbol, ts, price, z_score, message),
-        )
-        await conn.commit()
+    await _run_sql(url, INSERT_ALERT_SQL, (symbol, ts, price, z_score, message))
 
 
 async def test_health_returns_ok(client: httpx.AsyncClient) -> None:
@@ -115,8 +123,8 @@ async def test_prices_limit_honored(
     postgres_url: str, client: httpx.AsyncClient
 ) -> None:
     now = dt.datetime.now(dt.UTC).replace(microsecond=0)
-    for i in range(5):
-        await _insert_tick(postgres_url, "AAPL", now - dt.timedelta(seconds=i), 100.0 + i)
+    rows = [("AAPL", now - dt.timedelta(seconds=i), 100.0 + i, None) for i in range(5)]
+    await _run_sql_many(postgres_url, INSERT_TICK_SQL, rows)
     r = await client.get("/prices/AAPL?limit=2")
     assert r.status_code == 200
     assert len(r.json()) == 2
@@ -152,10 +160,10 @@ async def test_alerts_limit_honored(
     postgres_url: str, client: httpx.AsyncClient
 ) -> None:
     now = dt.datetime.now(dt.UTC).replace(microsecond=0)
-    for i in range(5):
-        await _insert_alert(
-            postgres_url, "AAPL", now - dt.timedelta(seconds=i), 100.0 + i, 3.0, f"a{i}"
-        )
+    rows = [
+        ("AAPL", now - dt.timedelta(seconds=i), 100.0 + i, 3.0, f"a{i}") for i in range(5)
+    ]
+    await _run_sql_many(postgres_url, INSERT_ALERT_SQL, rows)
     r = await client.get("/alerts?limit=2")
     assert r.status_code == 200
     assert len(r.json()) == 2
