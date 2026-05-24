@@ -10,10 +10,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Per-symbol bounded ring buffer of recent trades. Newest at the head so a
- * "recent N" query is the first N elements. Step 4 will swap reads to come
- * from Postgres; this in-memory log is what powers the HTTP /trades endpoint
- * in the meantime.
+ * Per-symbol bounded ring buffer of recent trades. Newest first so a
+ * "recent N" query is the first N elements without any reverse step.
  */
 public final class TradeLog {
 
@@ -22,16 +20,20 @@ public final class TradeLog {
     private final Map<String, Deque<Trade>> bySymbol = new HashMap<>();
 
     public synchronized void append(Trade t) {
-        Deque<Trade> q = bySymbol.computeIfAbsent(t.symbol(), s -> new ArrayDeque<>(CAPACITY_PER_SYMBOL));
-        q.addFirst(t);
-        while (q.size() > CAPACITY_PER_SYMBOL) {
-            q.removeLast();
-        }
+        appendOne(t);
     }
 
     public synchronized void appendAll(Collection<Trade> trades) {
         for (Trade t : trades) {
-            append(t);
+            appendOne(t);
+        }
+    }
+
+    private void appendOne(Trade t) {
+        Deque<Trade> q = bySymbol.computeIfAbsent(t.symbol(), s -> new ArrayDeque<>(CAPACITY_PER_SYMBOL));
+        q.addFirst(t);
+        if (q.size() > CAPACITY_PER_SYMBOL) {
+            q.removeLast();
         }
     }
 

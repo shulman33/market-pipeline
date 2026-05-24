@@ -1,26 +1,14 @@
 package com.portfolio.matching.persistence;
 
-import com.portfolio.matching.book.OrderType;
-import com.portfolio.matching.book.Side;
-import java.math.BigDecimal;
-
 /**
- * Append-only audit of every submitted order. Implementations should be cheap
- * and non-blocking from the engine's perspective; a database hiccup must not
- * stall matching.
+ * Append-only audit of every submitted order. Persistence is best-effort:
+ * the engine calls through synchronously, but a DB hiccup logs a warning
+ * rather than propagating, so matching itself never throws on a journal
+ * failure.
  */
 public interface OrderJournal {
 
-    void record(
-            long orderId,
-            String symbol,
-            Side side,
-            OrderType type,
-            BigDecimal price,
-            long quantity,
-            long timestampMillis,
-            long remainingQuantity,
-            boolean resting);
+    void record(OrderEvent event);
 
-    OrderJournal NOOP = (id, sym, side, type, price, qty, ts, remaining, resting) -> {};
+    OrderJournal NOOP = event -> {};
 }

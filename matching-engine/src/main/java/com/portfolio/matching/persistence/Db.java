@@ -36,6 +36,9 @@ public final class Db {
         cfg.setPassword(password);
         cfg.setMaximumPoolSize(8);
         cfg.setPoolName("matching-engine-pool");
+        // Switch the pgjdbc driver to named (server-side) prepared statements
+        // after the first execute so subsequent writes skip parse + plan.
+        cfg.addDataSourceProperty("prepareThreshold", "1");
         return new HikariDataSource(cfg);
     }
 }

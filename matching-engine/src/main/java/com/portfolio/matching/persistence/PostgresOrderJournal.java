@@ -1,8 +1,5 @@
 package com.portfolio.matching.persistence;
 
-import com.portfolio.matching.book.OrderType;
-import com.portfolio.matching.book.Side;
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -26,34 +23,25 @@ public final class PostgresOrderJournal implements OrderJournal {
     }
 
     @Override
-    public void record(
-            long orderId,
-            String symbol,
-            Side side,
-            OrderType type,
-            BigDecimal price,
-            long quantity,
-            long timestampMillis,
-            long remainingQuantity,
-            boolean resting) {
+    public void record(OrderEvent e) {
         try (Connection c = ds.getConnection();
                 PreparedStatement ps = c.prepareStatement(SQL)) {
-            ps.setLong(1, orderId);
-            ps.setString(2, symbol);
-            ps.setString(3, side.name());
-            ps.setString(4, type.name());
-            if (price != null) {
-                ps.setBigDecimal(5, price);
+            ps.setLong(1, e.orderId());
+            ps.setString(2, e.symbol());
+            ps.setString(3, e.side().name());
+            ps.setString(4, e.type().name());
+            if (e.price() != null) {
+                ps.setBigDecimal(5, e.price());
             } else {
                 ps.setNull(5, Types.NUMERIC);
             }
-            ps.setLong(6, quantity);
-            ps.setTimestamp(7, new Timestamp(timestampMillis));
-            ps.setLong(8, remainingQuantity);
-            ps.setBoolean(9, resting);
+            ps.setLong(6, e.quantity());
+            ps.setTimestamp(7, new Timestamp(e.timestampMillis()));
+            ps.setLong(8, e.remainingQuantity());
+            ps.setBoolean(9, e.resting());
             ps.executeUpdate();
-        } catch (SQLException e) {
-            log.warn("order journal insert failed for {}: {}", orderId, e.getMessage());
+        } catch (SQLException ex) {
+            log.warn("order journal insert failed for {}: {}", e.orderId(), ex.getMessage());
         }
     }
 }

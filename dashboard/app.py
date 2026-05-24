@@ -13,6 +13,7 @@ import httpx
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from _shared import footer, http_client
 from streamlit_autorefresh import st_autorefresh
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000")
@@ -29,14 +30,9 @@ st.set_page_config(page_title="Market Data Live", layout="wide")
 st_autorefresh(interval=REFRESH_INTERVAL_MS, key="autorefresh")
 
 
-@st.cache_resource
-def _api_client() -> httpx.Client:
-    return httpx.Client(base_url=API_URL, timeout=5.0)
-
-
 @st.cache_data(ttl=CACHE_TTL_S)
 def fetch_prices(symbol: str, limit: int) -> pd.DataFrame:
-    r = _api_client().get(f"/prices/{symbol}", params={"limit": limit})
+    r = http_client(API_URL).get(f"/prices/{symbol}", params={"limit": limit})
     r.raise_for_status()
     data = r.json()
     if not data:
@@ -48,7 +44,7 @@ def fetch_prices(symbol: str, limit: int) -> pd.DataFrame:
 
 @st.cache_data(ttl=CACHE_TTL_S)
 def fetch_alerts(limit: int) -> pd.DataFrame:
-    r = _api_client().get("/alerts", params={"limit": limit})
+    r = http_client(API_URL).get("/alerts", params={"limit": limit})
     r.raise_for_status()
     data = r.json()
     if not data:
@@ -115,9 +111,4 @@ with st.sidebar:
         display["ts"] = display["ts"].dt.strftime("%H:%M:%S")
         st.dataframe(display, hide_index=True, use_container_width=True)
 
-st.markdown(
-    "<div style='text-align: center; color: #888; font-size: 0.85em; margin-top: 2em;'>"
-    "Market data: <a href='https://finnhub.io' target='_blank'>Finnhub</a>"
-    "</div>",
-    unsafe_allow_html=True,
-)
+footer("Market data: <a href='https://finnhub.io' target='_blank'>Finnhub</a>")

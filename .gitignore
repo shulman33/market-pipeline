@@ -22,3 +22,7 @@ htmlcov/
 .vscode/
 .DS_Store
 .claude/
+
+# Java / Maven build artifacts.
+matching-engine/target/
+*.class

@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A price-time-priority limit order book for one symbol.
@@ -35,7 +34,7 @@ public final class OrderBook {
     private final NavigableMap<BigDecimal, PriceLevel> bids;
     private final NavigableMap<BigDecimal, PriceLevel> asks;
     private final Map<Long, Order> ordersById;
-    private final AtomicLong nextOrderId;
+    private long nextOrderId = 1L;
     private BigDecimal lastTradePrice;
 
     public OrderBook(String symbol) {
@@ -43,7 +42,6 @@ public final class OrderBook {
         this.bids = new TreeMap<>(Comparator.reverseOrder());
         this.asks = new TreeMap<>();
         this.ordersById = new HashMap<>();
-        this.nextOrderId = new AtomicLong(1);
     }
 
     public String symbol() {
@@ -57,7 +55,7 @@ public final class OrderBook {
         if (quantity <= 0) {
             throw new IllegalArgumentException("quantity must be positive");
         }
-        long takerId = nextOrderId.getAndIncrement();
+        long takerId = nextOrderId++;
         long ts = System.currentTimeMillis();
         List<Trade> trades = new ArrayList<>();
         long remaining = match(takerId, side, price, quantity, ts, trades);
@@ -78,7 +76,7 @@ public final class OrderBook {
         if (quantity <= 0) {
             throw new IllegalArgumentException("quantity must be positive");
         }
-        long takerId = nextOrderId.getAndIncrement();
+        long takerId = nextOrderId++;
         long ts = System.currentTimeMillis();
         List<Trade> trades = new ArrayList<>();
         long remaining = match(takerId, side, null, quantity, ts, trades);
@@ -190,22 +188,10 @@ public final class OrderBook {
                 level.recordFill(fillQty);
                 lastTradePrice = restingPrice;
                 if (maker.remainingQuantity() == 0) {
-                    // Maker fully consumed: unlink without re-touching totalQuantity.
-                    Order toRemove = maker;
-                    if (toRemove.prev != null) {
-                        toRemove.prev.next = toRemove.next;
-                    } else {
-                        level.head = toRemove.next;
-                    }
-                    if (toRemove.next != null) {
-                        toRemove.next.prev = toRemove.prev;
-                    } else {
-                        level.tail = toRemove.prev;
-                    }
-                    toRemove.prev = null;
-                    toRemove.next = null;
-                    toRemove.level = null;
-                    ordersById.remove(toRemove.id());
+                    // recordFill already debited totalQuantity, so unlink's
+                    // totalQuantity -= maker.remainingQuantity() subtracts 0.
+                    level.unlink(maker);
+                    ordersById.remove(maker.id());
                 }
             }
             if (level.isEmpty()) {

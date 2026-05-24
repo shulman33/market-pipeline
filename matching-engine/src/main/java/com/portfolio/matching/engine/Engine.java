@@ -8,6 +8,7 @@ import com.portfolio.matching.book.OrderType;
 import com.portfolio.matching.book.Side;
 import com.portfolio.matching.book.TopOfBook;
 import com.portfolio.matching.book.Trade;
+import com.portfolio.matching.persistence.OrderEvent;
 import com.portfolio.matching.persistence.OrderJournal;
 import com.portfolio.matching.persistence.TradeWriter;
 import java.math.BigDecimal;
@@ -17,10 +18,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Engine wires submission, in-memory matching, in-memory recent-trade cache,
- * and the optional Postgres writers into a single entry point. HttpServer and
- * SyntheticOrderGenerator both call through here so the journal and trade
- * writer see every fill from either source.
+ * Single funnel so HttpServer and SyntheticOrderGenerator both feed the
+ * optional Postgres journal and trade writer; without this, a future second
+ * caller could quietly skip persistence.
  */
 public final class Engine {
 
@@ -106,16 +106,9 @@ public final class Engine {
             long ts,
             MatchResult r) {
         tradeLog.appendAll(r.trades());
-        orderJournal.record(
-                r.orderId(),
-                symbol,
-                side,
-                type,
-                price,
-                quantity,
-                ts,
-                r.remainingQuantity(),
-                r.isResting());
+        orderJournal.record(new OrderEvent(
+                r.orderId(), symbol, side, type, price, quantity, ts,
+                r.remainingQuantity(), r.isResting()));
         tradeWriter.writeAll(r.trades());
     }
 }

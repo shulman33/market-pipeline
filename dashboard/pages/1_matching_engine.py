@@ -12,6 +12,7 @@ import httpx
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from _shared import footer, http_client
 from streamlit_autorefresh import st_autorefresh
 
 ENGINE_URL = os.environ.get("MATCHING_ENGINE_URL", "http://localhost:8080")
@@ -25,28 +26,23 @@ st.set_page_config(page_title="Matching Engine", layout="wide")
 st_autorefresh(interval=REFRESH_INTERVAL_MS, key="me_autorefresh")
 
 
-@st.cache_resource
-def _client() -> httpx.Client:
-    return httpx.Client(base_url=ENGINE_URL, timeout=5.0)
-
-
 @st.cache_data(ttl=CACHE_TTL_S)
 def fetch_top(symbol: str) -> dict:
-    r = _client().get(f"/book/{symbol}/top")
+    r = http_client(ENGINE_URL).get(f"/book/{symbol}/top")
     r.raise_for_status()
     return r.json()
 
 
 @st.cache_data(ttl=CACHE_TTL_S)
 def fetch_book(symbol: str, depth: int) -> dict:
-    r = _client().get(f"/book/{symbol}", params={"depth": depth})
+    r = http_client(ENGINE_URL).get(f"/book/{symbol}", params={"depth": depth})
     r.raise_for_status()
     return r.json()
 
 
 @st.cache_data(ttl=CACHE_TTL_S)
 def fetch_trades(symbol: str, limit: int) -> pd.DataFrame:
-    r = _client().get("/trades", params={"symbol": symbol, "limit": limit})
+    r = http_client(ENGINE_URL).get("/trades", params={"symbol": symbol, "limit": limit})
     r.raise_for_status()
     data = r.json()
     if not data:
@@ -134,9 +130,4 @@ else:
     )
     st.dataframe(view, hide_index=True, use_container_width=True)
 
-st.markdown(
-    "<div style='text-align: center; color: #888; font-size: 0.85em; margin-top: 2em;'>"
-    "Synthetic order flow generated locally; no real market data."
-    "</div>",
-    unsafe_allow_html=True,
-)
+footer("Synthetic order flow generated locally; no real market data.")

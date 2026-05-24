@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import time
 from collections.abc import Iterator
-from pathlib import Path
 
 import httpx
 import psycopg
@@ -23,7 +22,8 @@ from testcontainers.core.container import DockerContainer
 from testcontainers.core.network import Network
 from testcontainers.postgres import PostgresContainer
 
-SCHEMA_PATH = Path(__file__).parent.parent / "sql" / "schema.sql"
+from tests.conftest import apply_schema, normalize_pg_url
+
 ENGINE_IMAGE = "goldman-porfolio-matching-engine:latest"
 TEST_SYMBOL = "SYNTH1"
 READY_TIMEOUT_S = 30.0
@@ -43,16 +43,13 @@ def postgres(shared_network: Network) -> Iterator[PostgresContainer]:
         .with_network_aliases("postgres")
     )
     with container as pg:
-        host_url = pg.get_connection_url().replace("postgresql+psycopg2", "postgresql")
-        with psycopg.connect(host_url) as conn:
-            conn.execute(SCHEMA_PATH.read_text())
-            conn.commit()
+        apply_schema(pg)
         yield pg
 
 
 @pytest.fixture(scope="module")
 def postgres_host_url(postgres: PostgresContainer) -> str:
-    return postgres.get_connection_url().replace("postgresql+psycopg2", "postgresql")
+    return normalize_pg_url(postgres.get_connection_url())
 
 
 @pytest.fixture(scope="module")

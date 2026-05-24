@@ -13,7 +13,6 @@ from __future__ import annotations
 import datetime as dt
 import os
 from collections.abc import AsyncIterator
-from pathlib import Path
 
 import httpx
 import psycopg
@@ -22,7 +21,7 @@ import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from testcontainers.postgres import PostgresContainer
 
-SCHEMA_PATH = Path(__file__).parent.parent / "sql" / "schema.sql"
+from tests.conftest import apply_schema
 
 INSERT_TICK_SQL = (
     "INSERT INTO ticks (symbol, ts, price, volume) VALUES (%s, %s, %s, %s)"
@@ -49,11 +48,7 @@ async def _run_sql_many(url: str, sql: str, rows: list[tuple]) -> None:
 @pytest.fixture(scope="module")
 def postgres_url() -> AsyncIterator[str]:
     with PostgresContainer("postgres:16-alpine") as pg:
-        url = pg.get_connection_url().replace("postgresql+psycopg2", "postgresql")
-        with psycopg.connect(url) as conn:
-            conn.execute(SCHEMA_PATH.read_text())
-            conn.commit()
-        yield url
+        yield apply_schema(pg)
 
 
 @pytest_asyncio.fixture(scope="module")
