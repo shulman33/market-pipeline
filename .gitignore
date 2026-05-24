@@ -26,3 +26,7 @@ htmlcov/
 # Java / Maven build artifacts.
 matching-engine/target/
 *.class
+
+# Local-only artifacts.
+.playwright-mcp/
+resume/
