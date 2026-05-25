@@ -54,6 +54,10 @@ def postgres_url() -> AsyncIterator[str]:
 @pytest_asyncio.fixture(scope="module")
 async def client(postgres_url: str) -> AsyncIterator[httpx.AsyncClient]:
     os.environ["DATABASE_URL"] = postgres_url
+    # The /quote and /news endpoints need a Finnhub key at startup. Tests that
+    # exercise those endpoints mock the outbound calls, so the key value is
+    # irrelevant here — only its presence matters.
+    os.environ.setdefault("FINNHUB_API_KEY", "test-key")
     # Import after env is set so the lifespan reads the test DSN.
     from api.main import app
 

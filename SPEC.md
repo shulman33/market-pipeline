@@ -149,7 +149,9 @@ Schema lives in `sql/schema.sql` and is applied on Postgres container init via t
 
 ### Finnhub API surface
 
-The project uses **exactly one Finnhub interface** — the WebSocket trade stream at `wss://ws.finnhub.io?token={FINNHUB_API_KEY}`. No REST endpoints, no other WebSocket channels.
+The **ingestor** uses exactly one Finnhub interface — the WebSocket trade stream at `wss://ws.finnhub.io?token={FINNHUB_API_KEY}`. No REST endpoints, no other WebSocket channels in the ingestor.
+
+The **API** additionally proxies three Finnhub REST endpoints — `/stock/market-status`, `/quote`, and `/company-news` — to power an after-hours fallback view in the dashboard (see §7 and §8). Those calls are short-cached in process and never touch the WebSocket path or the ingestor.
 
 Documentation:
 - WebSocket reference: https://finnhub.io/docs/api/websocket-trades
@@ -245,16 +247,20 @@ This is the JD's "data structures & algorithms" beat — call it out explicitly 
 
 ## 7. API (FastAPI)
 
-Three endpoints. That's it.
+Five endpoints. The first three read from our Postgres. The last two proxy Finnhub's REST API for the dashboard's after-hours fallback (§8).
 
-| Method | Path | Returns |
-|---|---|---|
-| GET | `/health` | `{"status": "ok"}` |
-| GET | `/prices/{symbol}?limit=100` | last N ticks for symbol, newest first |
-| GET | `/alerts?limit=20` | last N alerts across all symbols |
+| Method | Path | Source | Returns |
+|---|---|---|---|
+| GET | `/health` | — | `{"status": "ok"}` |
+| GET | `/prices/{symbol}?limit=100` | Postgres | last N ticks for symbol, newest first |
+| GET | `/alerts?limit=20` | Postgres | last N alerts across all symbols |
+| GET | `/quote/{symbol}` | Finnhub `/quote` | current price, day open/high/low, prev close, change, % change |
+| GET | `/news/{symbol}` | Finnhub `/company-news` | last 7 days of company headlines, newest first, capped at 10 |
+| GET | `/market-status?exchange=US` | Finnhub `/stock/market-status` | `is_open`, `session` (pre-market / regular / post-market / closed), `holiday` |
 
 - Use FastAPI's dependency injection for the DB connection.
 - Pydantic response models.
+- The Finnhub-backed endpoints share one `httpx.AsyncClient` (lifespan-managed) and an in-process TTL cache (30s for /market-status, 60s for /quote, 5 min for /news). Returns `502` on any outbound HTTP failure.
 
 ### End-to-end test (no mocks)
 
@@ -275,11 +281,12 @@ Cover all three endpoints (`/health`, `/prices/{symbol}`, `/alerts`). No mocks o
 One page. Auto-refresh every 10s (`st.autorefresh` or a manual rerun).
 
 - **Top:** symbol selector dropdown.
-- **Main:** Plotly line chart of last ~200 ticks for the selected symbol. Overlay red dots at timestamps where alerts fired.
+- **Main (live mode):** Plotly line chart of last ~200 ticks for the selected symbol. Overlay red dots at timestamps where alerts fired.
+- **Main (after-hours mode):** when `/market-status` reports `is_open=false` (or returns no live ticks even during the regular session, e.g. a cold-start ingestor), render a watchlist view instead: a row of `st.metric` quote cards for all five symbols (current price, % change colored green/red, day range, prev close) with the selected symbol's card visually highlighted, plus a "News: {symbol}" feed of the 10 most recent headlines from `/news/{symbol}`. The banner copy varies by `session` (pre-market / post-market / closed / holiday name) so it reads honestly instead of just "market closed." The page auto-flips back to live mode the next refresh once the market reopens and trades flow.
 - **Side panel:** "Recent Alerts" — last 10 alerts across all symbols, newest first.
 - **Footer:** small attribution text — `Market data: Finnhub` (linked to https://finnhub.io). Finnhub's free tier is informally "personal/non-commercial"; a public portfolio URL is a grey area, and this attribution is the standard courtesy that removes any ambiguity.
 
-Reads exclusively from the API (`http://api:8000`). No DB access from the dashboard.
+Reads exclusively from the API (`http://api:8000`). No DB access from the dashboard, and no direct Finnhub access either — the after-hours data flows dashboard → API → Finnhub.
 
 ---
 
